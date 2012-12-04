@@ -62,6 +62,7 @@ void anim_gpu(DataBlock *d, int ticks){
     float_to_color<<<blocks, threads>>> (d->output_bitmap, d->dev_inSrc);
     HANDLE_ERROR(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap, bitmap->image_size(), cudaMemcpyDeviceToHost));
     HANDLE_ERROR(cudaEventRecord(d->stop, 0) );
+    HANDLE_ERROR(cudaEventSynchronize(d->stop));
     float elapsedTime;
     HANDLE_ERROR(cudaEventElapsedTime(&elapsedTime, d->start, d->stop));
     d->totalTime +=elapsedTime;
@@ -97,7 +98,7 @@ int main(){
     for (i= 0; i<DIM * DIM; i++){
         temp[i] = 0;
         int x = i % DIM;
-        int y = x / DIM;
+        int y = i / DIM;
         if( (x > 300) && (x < 600) && (y> 310) && (y<610) ){
             temp[i] = MAX_VOL;
         }
