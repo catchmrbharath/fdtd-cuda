@@ -67,7 +67,8 @@ __global__ void update_Hx(float *Hx, float *Ez, float *sigma_star, float* mu){
     float mus = mu[offset];
     float sigmamstar = sigma_star[offset];
 
-    float coef1 = (2.0 * mus - sigmamstar * deltat) / (2.0 * mus + sigmamstar * deltat);
+    float coef1 = (2.0 * mus - sigmamstar * deltat) /
+                        (2.0 * mus + sigmamstar * deltat);
     float coef2 = (2 * deltat) / ((2 * mus + sigmamstar * deltat) * delta);
 
     int top = offset + x_index_dim;
@@ -92,7 +93,8 @@ __global__ void update_Hy(float *Hy, float *Ez, float *sigma_star, float *mu){
     __syncthreads();
 }
 
-__global__ void update_Ez(float *Hx, float *Hy, float *Ez, float *sigma, float *epsilon){
+__global__ void update_Ez(float *Hx, float *Hy, float *Ez, float *sigma,
+                            float *epsilon){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int offset = x + y * blockDim.x * gridDim.x;
@@ -118,15 +120,19 @@ void anim_gpu(Datablock *d, int ticks){
     dim3 blocks(DIM / 16, DIM / 16);
     dim3 threads(16, 16);
     CPUAnimBitmap *bitmap = d->bitmap;
-    for(int i=0;i<100;i++){
+    for(int i=0;i<1;i++){
         copy_const_kernel<<<blocks, threads>>>(d->dev_Ez, d->dev_const);
-        update_Hx<<<blocks, threads>>>(d->dev_Hx,d->dev_Ez, d->dev_sigmastar, d->dev_mu);
-        update_Hy<<<blocks, threads>>>(d->dev_Hy, d->dev_Ez, d->dev_sigmastar, d->dev_mu);
-        update_Ez<<<blocks, threads>>>(d->dev_Hx, d->dev_Hy, d->dev_Ez, d->dev_sigma,d->dev_eps);
+        update_Hx<<<blocks, threads>>>(d->dev_Hx,d->dev_Ez,
+                        d->dev_sigmastar, d->dev_mu);
+        update_Hy<<<blocks, threads>>>(d->dev_Hy, d->dev_Ez,
+                                        d->dev_sigmastar, d->dev_mu);
+        update_Ez<<<blocks, threads>>>(d->dev_Hx, d->dev_Hy, d->dev_Ez,
+                                        d->dev_sigma,d->dev_eps);
     }
     float_to_color<<<blocks, threads>>> (d->output_bitmap, d->dev_Ez);
     printf("here");
-    checkCudaErrors(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap, bitmap->image_size(), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap,
+                        bitmap->image_size(), cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
     float elapsedTime;
@@ -157,10 +163,14 @@ int main(){
     structure.courant = 0.5;
     structure.dx =  (structure.dt* LIGHTSPEED) / structure.courant; 
     printf("%f\n", structure.dx);
-    checkCudaErrors(cudaMemcpyToSymbol(x_index_dim, &structure.x_index_dim, sizeof(structure.x_index_dim)));
-    checkCudaErrors(cudaMemcpyToSymbol(y_index_dim, &structure.y_index_dim, sizeof(structure.y_index_dim)));
-    checkCudaErrors(cudaMemcpyToSymbol(delta, &structure.dx, sizeof(structure.dx)));
-    checkCudaErrors(cudaMemcpyToSymbol(deltat, &structure.dt, sizeof(structure.dt)));
+    checkCudaErrors(cudaMemcpyToSymbol(x_index_dim, &structure.x_index_dim,
+                    sizeof(structure.x_index_dim)));
+    checkCudaErrors(cudaMemcpyToSymbol(y_index_dim, &structure.y_index_dim,
+                    sizeof(structure.y_index_dim)));
+    checkCudaErrors(cudaMemcpyToSymbol(delta, &structure.dx,
+                    sizeof(structure.dx)));
+    checkCudaErrors(cudaMemcpyToSymbol(deltat, &structure.dt,
+                    sizeof(structure.dt)));
     CPUAnimBitmap bitmap(256, 256, &data);
     data.bitmap = &bitmap;
     data.totalTime = 0;
@@ -168,7 +178,8 @@ int main(){
     checkCudaErrors(cudaEventCreate(&data.start, 1) );
     checkCudaErrors(cudaEventCreate(&data.stop, 1) );
 
-    checkCudaErrors(cudaMalloc( (void **) &data.output_bitmap, bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.output_bitmap,
+                    bitmap.image_size()));
     checkCudaErrors(cudaMalloc( (void **) &data.dev_Ez, bitmap.image_size() ));
     checkCudaErrors(cudaMalloc( (void **) &data.dev_Hx, bitmap.image_size() ));
     checkCudaErrors(cudaMalloc( (void **) &data.dev_Hy, bitmap.image_size() ));
@@ -178,19 +189,21 @@ int main(){
     checkCudaErrors(cudaMalloc( (void **) &data.dev_sigmastar, bitmap.image_size() ));
     checkCudaErrors(cudaMalloc( (void **) &data.dev_const, bitmap.image_size() ));
 
-    float *temp = (float *) calloc(0, bitmap.image_size() );
+    float *temp = (float *) malloc(bitmap.image_size() );
     float *temp_mu = (float *) malloc(bitmap.image_size() );
     for(int i=0;i<structure.x_index_dim;i++)
         for(int j=0;j<structure.y_index_dim;j++)
             temp_mu[i + j * structure.x_index_dim] = MU;
 
-    checkCudaErrors(cudaMemcpy(data.dev_mu, temp_mu, bitmap.image_size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(data.dev_mu, temp_mu, bitmap.image_size(),
+                    cudaMemcpyHostToDevice));
 
     for(int i=0;i<structure.x_index_dim;i++)
         for(int j=0;j<structure.y_index_dim;j++)
             temp_mu[i + j * structure.x_index_dim] = EPSILON;
 
-    checkCudaErrors(cudaMemcpy(data.dev_eps, temp_mu, bitmap.image_size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(data.dev_eps, temp_mu, bitmap.image_size(),
+                    cudaMemcpyHostToDevice));
 
     for(int i=0;i<structure.x_index_dim;i++)
         for(int j=0;j<structure.y_index_dim;j++)
@@ -199,18 +212,25 @@ int main(){
     for(int i=0;i<structure.x_index_dim;i++)
         for(int j=0;j<structure.y_index_dim;j++)
             temp[i + j * structure.x_index_dim] = 0;
-    checkCudaErrors(cudaMemcpy(data.dev_sigma, temp_mu, bitmap.image_size(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.dev_sigmastar, temp_mu, bitmap.image_size(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.dev_Ez, temp, bitmap.image_size(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.dev_Hx, temp, bitmap.image_size(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.dev_Hy, temp, bitmap.image_size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(data.dev_sigma, temp_mu, bitmap.image_size(),
+                    cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(data.dev_sigmastar, temp_mu, bitmap.image_size(),
+                    cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(data.dev_Ez, temp, bitmap.image_size(),
+                    cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(data.dev_Hx, temp, bitmap.image_size(),
+                    cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(data.dev_Hy, temp, bitmap.image_size(),
+                    cudaMemcpyHostToDevice));
 
     for(int i= 125; i< 129;i++)
         for(int j=125; j<129;j++)
         temp[256 * j + i] = 1;
 
-    checkCudaErrors(cudaMemcpy(data.dev_const, temp, bitmap.image_size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(data.dev_const, temp, bitmap.image_size(),
+                    cudaMemcpyHostToDevice));
     free(temp);
     free(temp_mu);
-    bitmap.anim_and_exit( (void (*)(void *, int)) anim_gpu, (void (*)(void *)) anim_exit);
+    bitmap.anim_and_exit( (void (*)(void *, int)) anim_gpu,
+                            (void (*)(void *)) anim_exit);
 }
