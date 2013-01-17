@@ -64,6 +64,18 @@ __global__ void update_Hx(float *Hx, float *Ez, float *sigma_star, float* mu){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int offset = x + y * blockDim.x * gridDim.x;
+
+    __shared__ float Ezshared[16][17];
+
+    if(threadIdx.y == blockDim.y - 1){
+        Ezshared[threadIdx.x][threadIdx.y + 1] = Ez[offset + x_index_dim];
+        Ezshared[threadIdx.x][threadIdx.y] = Ez[offset]; 
+    }
+    else
+        Ezshared[threadIdx.x][threadIdx.y] = Ez[offset]; 
+
+    __syncthreads();
+
     float mus = mu[offset];
     float sigmamstar = sigma_star[offset];
 
@@ -73,7 +85,8 @@ __global__ void update_Hx(float *Hx, float *Ez, float *sigma_star, float* mu){
 
     int top = offset + x_index_dim;
     if(y < y_index_dim -1)
-        Hx[offset] = coef1 * Hx[offset] - coef2 * (Ez[top] - Ez[offset]);
+        Hx[offset] = coef1 * Hx[offset] - coef2 *
+            (Ezshared[threadIdx.x][threadIdx.y + 1] - Ezshared[threadIdx.x][threadIdx.y]);
     __syncthreads();
 }
 
@@ -107,7 +120,7 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float *sigma,
     float coef1 = (2.0 * eps - sigmam * deltat) / (2.0 * eps + sigmam * deltat);
     float coef2 = (2.0 * deltat) / ((2 * eps + sigmam * deltat) * delta);
 
-    if (x > 0 && y > 0 && x<x_index_dim - 1 && y < y_index_dim - 1)
+    if (x > 0 && y > 0 && x < x_index_dim - 1 && y < y_index_dim - 1)
         Ez[offset] = coef1 * Ez[offset] + coef2 * ((Hy[offset] - Hy[left]) -
                                         (Hx[offset] - Hx[bottom]));
 
@@ -120,7 +133,7 @@ void anim_gpu(Datablock *d, int ticks){
     dim3 blocks(DIM / 16, DIM / 16);
     dim3 threads(16, 16);
     CPUAnimBitmap *bitmap = d->bitmap;
-    for(int i=0;i<1;i++){
+    for(int i=0;i<100;i++){
         copy_const_kernel<<<blocks, threads>>>(d->dev_Ez, d->dev_const);
         update_Hx<<<blocks, threads>>>(d->dev_Hx,d->dev_Ez,
                         d->dev_sigmastar, d->dev_mu);
@@ -130,7 +143,6 @@ void anim_gpu(Datablock *d, int ticks){
                                         d->dev_sigma,d->dev_eps);
     }
     float_to_color<<<blocks, threads>>> (d->output_bitmap, d->dev_Ez);
-    printf("here");
     checkCudaErrors(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap,
                         bitmap->image_size(), cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
@@ -171,7 +183,7 @@ int main(){
                     sizeof(structure.dx)));
     checkCudaErrors(cudaMemcpyToSymbol(deltat, &structure.dt,
                     sizeof(structure.dt)));
-    CPUAnimBitmap bitmap(256, 256, &data);
+    CPUAnimBitmap bitmap(structure.x_index_dim, structure.y_index_dim, &data);
     data.bitmap = &bitmap;
     data.totalTime = 0;
     data.frames = 0;
