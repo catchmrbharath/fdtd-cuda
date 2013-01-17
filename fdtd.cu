@@ -6,7 +6,7 @@
 #include<stdio.h>
 
 
-#define DIM 256
+#define DIM 1024
 #define PI 3.1415926535897932f
 #define MAX_VOL 1.0f
 #define MIN_VOL 0.00001f
@@ -95,14 +95,27 @@ __global__ void update_Hy(float *Hy, float *Ez, float *sigma_star, float *mu){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int offset = x + y * blockDim.x * gridDim.x;
+
+    __shared__ float Ezshared[17][16];
+
+    if(threadIdx.x == blockDim.x - 1){
+        Ezshared[threadIdx.x + 1][threadIdx.y] = Ez[offset + 1];
+        Ezshared[threadIdx.x][threadIdx.y] = Ez[offset]; 
+    }
+    else
+        Ezshared[threadIdx.x][threadIdx.y] = Ez[offset]; 
+
+    __syncthreads();
+
     float mus = mu[offset];
     float sigmamstar = sigma_star[offset];
     float coef1 = (2.0 * mus - sigmamstar * deltat) / (2.0 * mus + sigmamstar * deltat);
     float coef2 = (2 * deltat) / ((2 * mus + sigmamstar * deltat) * delta);
 
     int right = offset + 1;
-    if(x < x_index_dim -1)
-        Hy[offset] = coef1 * Hy[offset] + coef2 * (Ez[right] - Ez[offset]);
+    if(x < x_index_dim - 1)
+        Hy[offset] = coef1 * Hy[offset] + coef2 * 
+            (Ezshared[threadIdx.x + 1][threadIdx.y] - Ezshared[threadIdx.x][threadIdx.y]);
     __syncthreads();
 }
 
@@ -169,8 +182,8 @@ void anim_exit(Datablock *d){
 int main(){
     Datablock data ;
     Structure structure;
-    structure.x_index_dim = 256;
-    structure.y_index_dim = 256;
+    structure.x_index_dim = 1024;
+    structure.y_index_dim = 1024;
     structure.dt= 0.5;
     structure.courant = 0.5;
     structure.dx =  (structure.dt* LIGHTSPEED) / structure.courant; 
