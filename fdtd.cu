@@ -6,7 +6,7 @@
 #include<stdio.h>
 
 
-#define DIM 256
+#define DIM 1024
 #define PI 3.1415926535897932f
 #define MAX_VOL 1.0f
 #define MIN_VOL 0.00001f
@@ -120,7 +120,7 @@ void anim_gpu(Datablock *d, int ticks){
     dim3 blocks(DIM / 16, DIM / 16);
     dim3 threads(16, 16);
     CPUAnimBitmap *bitmap = d->bitmap;
-    for(int i=0;i<1;i++){
+    for(int i=0;i<100;i++){
         copy_const_kernel<<<blocks, threads>>>(d->dev_Ez, d->dev_const);
         update_Hx<<<blocks, threads>>>(d->dev_Hx,d->dev_Ez,
                         d->dev_sigmastar, d->dev_mu);
@@ -130,7 +130,6 @@ void anim_gpu(Datablock *d, int ticks){
                                         d->dev_sigma,d->dev_eps);
     }
     float_to_color<<<blocks, threads>>> (d->output_bitmap, d->dev_Ez);
-    printf("here");
     checkCudaErrors(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap,
                         bitmap->image_size(), cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
@@ -157,8 +156,8 @@ void anim_exit(Datablock *d){
 int main(){
     Datablock data ;
     Structure structure;
-    structure.x_index_dim = 256;
-    structure.y_index_dim = 256;
+    structure.x_index_dim = 1024;
+    structure.y_index_dim = 1024;
     structure.dt= 0.5;
     structure.courant = 0.5;
     structure.dx =  (structure.dt* LIGHTSPEED) / structure.courant; 
@@ -171,7 +170,7 @@ int main(){
                     sizeof(structure.dx)));
     checkCudaErrors(cudaMemcpyToSymbol(deltat, &structure.dt,
                     sizeof(structure.dt)));
-    CPUAnimBitmap bitmap(256, 256, &data);
+    CPUAnimBitmap bitmap(1024, 1024, &data);
     data.bitmap = &bitmap;
     data.totalTime = 0;
     data.frames = 0;
