@@ -3,7 +3,9 @@
 #include "cpu_anim.h"
 #include "helper_cuda.h"
 #include "helper_functions.h"
+#include "h5save.h"
 #include<stdio.h>
+#include<pthread.h>
 
 
 #define DIM 1024
