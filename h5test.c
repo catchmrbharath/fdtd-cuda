@@ -1,5 +1,6 @@
 #include "hdf5.h"
 #include <stdlib.h>
+#include "h5save.h"
 #define FILE "file.h5"
 
 int create_file(char * name){
@@ -21,7 +22,6 @@ int create_new_dataset(char * name, int ticks, float * fields, int xdim, int ydi
     sprintf(buffer, "/dset%d", ticks);
 
     dataset_id = H5Dcreate(file_id, buffer, datatype, dataspace_id, H5P_DEFAULT);
-    printf("%d\n", dataset_id);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
                         fields);
     status = H5Dclose(dataset_id);
