@@ -1,7 +1,5 @@
-#ifndef _DATABLOCK_
-#define _DATABLOCK_
-#include "book.h"
-#include "cpu_anim.h"
+#ifndef __DATABLOCK__
+#define __DATABLOCK__
 typedef struct {
     float xdim;
     float ydim;

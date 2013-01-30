@@ -17,6 +17,7 @@
 #ifndef __BOOK_H__
 #define __BOOK_H__
 #include <stdio.h>
+#include <cuda.h>
 
 static void HandleError( cudaError_t err,
                          const char *file,
