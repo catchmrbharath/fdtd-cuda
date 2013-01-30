@@ -26,14 +26,16 @@ struct CPUBitmap {
     void (*bitmapExit)(void*);
 
     CPUBitmap( int width, int height, void *d = NULL ) {
-        pixels = new unsigned char[width * height * 4];
+        unsigned char * pixels;
+        cudaHostAlloc((void **)&pixels, sizeof(unsigned char) * width * height * 4,
+                        cudaHostAllocDefault);
         x = width;
         y = height;
         dataBlock = d;
     }
 
     ~CPUBitmap() {
-        delete [] pixels;
+        cudaFreeHost(pixels);
     }
 
     unsigned char* get_ptr( void ) const   { return pixels; }

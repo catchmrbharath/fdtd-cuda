@@ -163,7 +163,6 @@ int main(){
     structure.dt= 0.5;
     structure.courant = 0.5;
     structure.dx =  (structure.dt* LIGHTSPEED) / structure.courant; 
-    printf("%f\n", structure.dx);
     checkCudaErrors(cudaMemcpyToSymbol(x_index_dim, &structure.x_index_dim,
                     sizeof(structure.x_index_dim)));
     checkCudaErrors(cudaMemcpyToSymbol(y_index_dim, &structure.y_index_dim,
@@ -172,7 +171,8 @@ int main(){
                     sizeof(structure.dx)));
     checkCudaErrors(cudaMemcpyToSymbol(deltat, &structure.dt,
                     sizeof(structure.dt)));
-    CPUAnimBitmap bitmap(1024, 1024, &data);
+    CPUAnimBitmap bitmap(structure.x_index_dim, structure.x_index_dim,
+                            &data);
     data.bitmap = &bitmap;
     data.totalTime = 0;
     data.frames = 0;
