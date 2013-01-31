@@ -98,7 +98,23 @@ int main(){
     checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMAINDEX], bitmap.image_size() ));
     checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMA_STAR_INDEX], bitmap.image_size() ));
     checkCudaErrors(cudaMalloc( (void **) &data.dev_const, bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.coefs[0], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.coefs[1], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.coefs[2], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.coefs[3], bitmap.image_size() ));
 
+//  get the coefficients
+    dim3 blocks(DIM / 16, DIM / 16);
+    dim3 threads(16, 16);
+
+    te_getcoeff<<<blocks, threads>>>(data.constants[0],
+                                     data.constants[1],
+                                     data.constants[2],
+                                     data.constants[3],
+                                     data.coefs[0],
+                                     data.coefs[1],
+                                     data.coefs[2],
+                                     data.coefs[3]);
     float *temp = (float *) malloc(bitmap.image_size() );
     float *temp_mu = (float *) malloc(bitmap.image_size() );
     for(int i=0;i<structure.x_index_dim;i++)

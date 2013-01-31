@@ -66,3 +66,29 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float *sigma,
 
     __syncthreads();
 }
+
+
+__global__ void te_getcoeff(float *mu,
+                                float * epsilon,
+                                float *sigma,
+                                float * sigma_star,
+                                float * coef1,
+                                float * coef2,
+                                float * coef3,
+                                float * coef4){
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * blockDim.x * gridDim.x;
+    float mus = mu[offset];
+    float sigmamstar = sigma_star[offset];
+    float sigmam = sigma[offset];
+    float eps = epsilon[offset];
+    coef1[offset] = (2.0 * mus - sigmamstar * deltat) /
+                        (2.0 * mus + sigmamstar * deltat);
+    coef2[offset] = (2 * deltat) / ((2 * mus + sigmamstar * deltat) * delta);
+
+    coef3[offset] = (2.0 * eps - sigmam * deltat) /
+                        (2.0 * eps + sigmam * deltat);
+    coef4[offset] = (2.0 * deltat) /
+                    ((2 * eps + sigmam * deltat) * delta);
+}

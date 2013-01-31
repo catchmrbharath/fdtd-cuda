@@ -23,12 +23,14 @@ typedef struct {
 #define EPSINDEX 1
 #define SIGMAINDEX 2
 #define SIGMA_STAR_INDEX 3
+
 struct Datablock{
     unsigned char *output_bitmap;
     float ** fields;
     float ** constants;
     float * dev_const;
     float *field;
+    float ** coefs;
     CPUAnimBitmap *bitmap;
     cudaEvent_t start, stop;
     float totalTime;
@@ -39,6 +41,7 @@ struct Datablock{
         if(type == TE_SIMULATION){
             fields = (float **) malloc(sizeof(float *) * 3);
             constants = (float **) malloc(sizeof(float *) * 4);
+            coefs = (float **) malloc(sizeof(float *) * 4);
         }
     }
 
