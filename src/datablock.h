@@ -14,6 +14,7 @@ typedef struct {
 } Structure;
 
 #define TE_SIMULATION 0
+
 #define TE_HXFIELD 0
 #define TE_HYFIELD 1
 #define TE_EZFIELD 2
