@@ -23,19 +23,19 @@ void anim_gpu(Datablock *d, int ticks){
 
         update_Hx<<<blocks, threads>>>(d->fields[TE_HXFIELD],
                                         d->fields[TE_EZFIELD],
-                                        d->constants[SIGMA_STAR_INDEX],
-                                        d->constants[MUINDEX]);
+                                        d->coefs[0],
+                                        d->coefs[1]);
 
         update_Hy<<<blocks, threads>>>(d->fields[TE_HYFIELD],
                                         d->fields[TE_EZFIELD],
-                                        d->constants[SIGMA_STAR_INDEX],
-                                        d->constants[MUINDEX]);
+                                        d->coefs[0],
+                                        d->coefs[1]);
 
         update_Ez<<<blocks, threads>>>(d->fields[TE_HXFIELD],
                                         d->fields[TE_HYFIELD],
                                         d->fields[TE_EZFIELD],
-                                        d->constants[SIGMAINDEX],
-                                        d->constants[EPSINDEX]);
+                                        d->coefs[2],
+                                        d->coefs[3]);
     }
     float_to_color<<<blocks, threads>>> (d->output_bitmap,
                                         d->fields[TE_EZFIELD]);
