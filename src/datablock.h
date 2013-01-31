@@ -42,5 +42,10 @@ struct Datablock{
         }
     }
 
+    ~Datablock(){
+        free(fields);
+        free(constants);
+    }
+
 };
 #endif
