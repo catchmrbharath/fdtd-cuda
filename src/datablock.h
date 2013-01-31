@@ -13,22 +13,33 @@ typedef struct {
     char * name;
 } Structure;
 
+#define TE_SIMULATION 0
+#define TE_HXFIELD 0
+#define TE_HYFIELD 1
+#define TE_EZFIELD 2
 
-typedef struct {
+#define MUINDEX 0
+#define EPSINDEX 1
+#define SIGMAINDEX 2
+#define SIGMA_STAR_INDEX 3
+struct Datablock{
     unsigned char *output_bitmap;
-    float *dev_Ez;
-    float *dev_Hx;
-    float *dev_Hy;
-    float *dev_eps;
-    float *dev_mu;
-    float *dev_sigma;
-    float *dev_sigmastar;
-    float *dev_const;
+    float ** fields;
+    float ** constants;
+    float * dev_const;
     float *field;
     CPUAnimBitmap *bitmap;
     cudaEvent_t start, stop;
     float totalTime;
     float frames;
     Structure * structure;
-} Datablock;
+
+    Datablock(int type){
+        if(type == TE_SIMULATION){
+            fields = (float **) malloc(sizeof(float *) * 3);
+            constants = (float **) malloc(sizeof(float *) * 4);
+        }
+    }
+
+};
 #endif

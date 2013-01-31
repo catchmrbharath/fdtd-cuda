@@ -31,14 +31,3 @@ class structure{
         void read_structure(char * filename);
 
 } Structure;
-
-
-
-
-
-
-
-
-
-
-

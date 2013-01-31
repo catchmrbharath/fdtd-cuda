@@ -6,6 +6,7 @@
 #include "h5save.h"
 #include<stdio.h>
 #include<pthread.h>
+#include "datablock.h"
 
 
 #define DIM 1024
@@ -20,36 +21,6 @@ __device__ __constant__ int x_index_dim;
 __device__ __constant__ int y_index_dim;
 __device__ __constant__ float delta;
 __device__ __constant__ float deltat;
-
-
-typedef struct {
-    unsigned char *output_bitmap;
-    float *dev_Ez;
-    float *dev_Hx;
-    float *dev_Hy;
-    float *dev_eps;
-    float *dev_mu;
-    float *dev_sigma;
-    float *dev_sigmastar;
-    float *dev_const;
-    CPUAnimBitmap *bitmap;
-    cudaEvent_t start, stop;
-    float totalTime;
-    float frames;
-} Datablock;
-
-
-typedef struct {
-    float xdim;
-    float ydim;
-    int x_index_dim;
-    int y_index_dim;
-    float courant;
-    float dx;
-    float dt;
-} Structure;
-
-
 
 
 __global__ void copy_const_kernel(float *iptr, const float *cptr){
@@ -123,15 +94,15 @@ void anim_gpu(Datablock *d, int ticks){
     dim3 threads(16, 16);
     CPUAnimBitmap *bitmap = d->bitmap;
     for(int i=0;i<100;i++){
-        copy_const_kernel<<<blocks, threads>>>(d->dev_Ez, d->dev_const);
-        update_Hx<<<blocks, threads>>>(d->dev_Hx,d->dev_Ez,
-                        d->dev_sigmastar, d->dev_mu);
-        update_Hy<<<blocks, threads>>>(d->dev_Hy, d->dev_Ez,
-                                        d->dev_sigmastar, d->dev_mu);
-        update_Ez<<<blocks, threads>>>(d->dev_Hx, d->dev_Hy, d->dev_Ez,
-                                        d->dev_sigma,d->dev_eps);
+        copy_const_kernel<<<blocks, threads>>>(d->fields[TE_EZFIELD], d->dev_const);
+        update_Hx<<<blocks, threads>>>(d->fields[TE_HXFIELD],d->fields[TE_EZFIELD],
+                        d->constants[SIGMA_STAR_INDEX], d->constants[MUINDEX]);
+        update_Hy<<<blocks, threads>>>(d->fields[TE_HYFIELD], d->fields[TE_EZFIELD],
+                                        d->constants[SIGMA_STAR_INDEX], d->constants[MUINDEX]);
+        update_Ez<<<blocks, threads>>>(d->fields[TE_HXFIELD], d->fields[TE_HYFIELD], d->fields[TE_EZFIELD],
+                                        d->constants[SIGMAINDEX],d->constants[EPSINDEX]);
     }
-    float_to_color<<<blocks, threads>>> (d->output_bitmap, d->dev_Ez);
+    float_to_color<<<blocks, threads>>> (d->output_bitmap, d->fields[TE_EZFIELD]);
     checkCudaErrors(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap,
                         bitmap->image_size(), cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
@@ -144,25 +115,25 @@ void anim_gpu(Datablock *d, int ticks){
 }
 
 void anim_exit(Datablock *d){
-    cudaFree(d->dev_Ez);
-    cudaFree(d->dev_Hx);
-    cudaFree(d->dev_Hy);
-    cudaFree(d->dev_sigma);
-    cudaFree(d->dev_sigmastar);
-    cudaFree(d->dev_eps);
-    cudaFree(d->dev_mu);
+    cudaFree(d->fields[TE_EZFIELD]);
+    cudaFree(d->fields[TE_HYFIELD]);
+    cudaFree(d->fields[TE_HXFIELD]);
+    cudaFree(d->constants[SIGMAINDEX]);
+    cudaFree(d->constants[SIGMA_STAR_INDEX]);
+    cudaFree(d->constants[EPSINDEX]);
+    cudaFree(d->constants[MUINDEX]);
     checkCudaErrors(cudaEventDestroy(d->start) );
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
 
 int main(){
-    Datablock data ;
+    Datablock data(0);
     Structure structure;
     structure.x_index_dim = 1024;
     structure.y_index_dim = 1024;
     structure.dt= 0.5;
     structure.courant = 0.5;
-    structure.dx =  (structure.dt* LIGHTSPEED) / structure.courant; 
+    structure.dx =  (structure.dt * LIGHTSPEED) / structure.courant; 
     checkCudaErrors(cudaMemcpyToSymbol(x_index_dim, &structure.x_index_dim,
                     sizeof(structure.x_index_dim)));
     checkCudaErrors(cudaMemcpyToSymbol(y_index_dim, &structure.y_index_dim,
@@ -181,13 +152,13 @@ int main(){
 
     checkCudaErrors(cudaMalloc( (void **) &data.output_bitmap,
                     bitmap.image_size()));
-    checkCudaErrors(cudaMalloc( (void **) &data.dev_Ez, bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.dev_Hx, bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.dev_Hy, bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.dev_mu, bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.dev_eps, bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.dev_sigma, bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.dev_sigmastar, bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_EZFIELD], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_HYFIELD], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_HXFIELD], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.constants[MUINDEX], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.constants[EPSINDEX], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMAINDEX], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMA_STAR_INDEX], bitmap.image_size() ));
     checkCudaErrors(cudaMalloc( (void **) &data.dev_const, bitmap.image_size() ));
 
     float *temp = (float *) malloc(bitmap.image_size() );
@@ -196,14 +167,14 @@ int main(){
         for(int j=0;j<structure.y_index_dim;j++)
             temp_mu[i + j * structure.x_index_dim] = MU;
 
-    checkCudaErrors(cudaMemcpy(data.dev_mu, temp_mu, bitmap.image_size(),
+    checkCudaErrors(cudaMemcpy(data.constants[MUINDEX], temp_mu, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
 
     for(int i=0;i<structure.x_index_dim;i++)
         for(int j=0;j<structure.y_index_dim;j++)
             temp_mu[i + j * structure.x_index_dim] = EPSILON;
 
-    checkCudaErrors(cudaMemcpy(data.dev_eps, temp_mu, bitmap.image_size(),
+    checkCudaErrors(cudaMemcpy(data.constants[EPSINDEX], temp_mu, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
 
     for(int i=0;i<structure.x_index_dim;i++)
@@ -213,15 +184,15 @@ int main(){
     for(int i=0;i<structure.x_index_dim;i++)
         for(int j=0;j<structure.y_index_dim;j++)
             temp[i + j * structure.x_index_dim] = 0;
-    checkCudaErrors(cudaMemcpy(data.dev_sigma, temp_mu, bitmap.image_size(),
+    checkCudaErrors(cudaMemcpy(data.constants[SIGMAINDEX], temp_mu, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.dev_sigmastar, temp_mu, bitmap.image_size(),
+    checkCudaErrors(cudaMemcpy(data.constants[SIGMA_STAR_INDEX], temp_mu, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.dev_Ez, temp, bitmap.image_size(),
+    checkCudaErrors(cudaMemcpy(data.fields[TE_EZFIELD], temp, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.dev_Hx, temp, bitmap.image_size(),
+    checkCudaErrors(cudaMemcpy(data.fields[TE_HXFIELD], temp, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.dev_Hy, temp, bitmap.image_size(),
+    checkCudaErrors(cudaMemcpy(data.fields[TE_HYFIELD], temp, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
 
     for(int i= 125; i< 129;i++)
