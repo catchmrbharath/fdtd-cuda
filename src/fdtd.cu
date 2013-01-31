@@ -65,7 +65,7 @@ void anim_exit(Datablock *d){
 }
 
 int main(){
-    Datablock data(0);
+    Datablock data(TE_SIMULATION);
     Structure structure;
     structure.x_index_dim = 1024;
     structure.y_index_dim = 1024;
