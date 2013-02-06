@@ -19,7 +19,8 @@ __global__ void update_Hx(float *Hx, float *Ez, float *coef1, float* coef2){
     int offset = x + y * blockDim.x * gridDim.x;
     int top = offset + x_index_dim;
     if(y < y_index_dim -1)
-        Hx[offset] = coef1[offset] * Hx[offset] - coef2[offset] * (Ez[top] - Ez[offset]);
+        Hx[offset] = coef1[offset] * Hx[offset]
+                        - coef2[offset] * (Ez[top] - Ez[offset]);
     __syncthreads();
 }
 
@@ -30,7 +31,8 @@ __global__ void update_Hy(float *Hy, float *Ez, float * coef1, float * coef2){
     int offset = x + y * blockDim.x * gridDim.x;
     int right = offset + 1;
     if(x < x_index_dim -1)
-        Hy[offset] = coef1[offset] * Hy[offset] + coef2[offset] * (Ez[right] - Ez[offset]);
+        Hy[offset] = coef1[offset] * Hy[offset] + 
+                        coef2[offset] * (Ez[right] - Ez[offset]);
     __syncthreads();
 }
 
@@ -40,12 +42,13 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int offset = x + y * blockDim.x * gridDim.x;
 
-    int left=offset - 1;
+    int left = offset - 1;
     int bottom = offset - x_index_dim;
 
     if (x > 0 && y > 0 && x<x_index_dim - 1 && y < y_index_dim - 1)
-        Ez[offset] = coef1[offset] * Ez[offset] + coef2[offset] * ((Hy[offset] - Hy[left]) -
-                                        (Hx[offset] - Hx[bottom]));
+        Ez[offset] = coef1[offset] * Ez[offset] +
+                    coef2[offset] * ((Hy[offset] - Hy[left]) -
+                                    (Hx[offset] - Hx[bottom]));
 
     __syncthreads();
 }
@@ -74,4 +77,5 @@ __global__ void te_getcoeff(float *mu,
                         (2.0 * eps + sigmam * deltat);
     coef4[offset] = (2.0 * deltat) /
                     ((2 * eps + sigmam * deltat) * delta);
+    __syncthreads();
 }
