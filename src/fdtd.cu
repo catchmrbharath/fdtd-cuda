@@ -14,8 +14,13 @@
 
 void anim_gpu(Datablock *d, int ticks){
     checkCudaErrors(cudaEventRecord(d->start, 0) );
-    dim3 blocks(DIM / 16, DIM / 16);
-    dim3 threads(16, 16);
+    
+    // FIXME Use of Dim
+
+    dim3 blocks((DIM + BLOCKSIZE - 1) / BLOCKSIZE,
+                (DIM + BLOCKSIZE - 1) / BLOCKSIZE);
+
+    dim3 threads(BLOCKSIZE, BLOCKSIZE);
     CPUAnimBitmap *bitmap = d->bitmap;
     for(int i=0;i<100;i++){
         copy_const_kernel<<<blocks, threads>>>(d->fields[TE_EZFIELD],
@@ -60,6 +65,11 @@ void anim_exit(Datablock *d){
     cudaFree(d->constants[SIGMA_STAR_INDEX]);
     cudaFree(d->constants[EPSINDEX]);
     cudaFree(d->constants[MUINDEX]);
+    cudaFree(d->coefs[0]);
+    cudaFree(d->coefs[1]);
+    cudaFree(d->coefs[2]);
+    cudaFree(d->coefs[3]);
+    cudaFree(d->dev_const);
     checkCudaErrors(cudaEventDestroy(d->start) );
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
@@ -71,7 +81,10 @@ int main(){
     structure.y_index_dim = 1024;
     structure.dt= 0.5;
     structure.courant = 0.5;
-    structure.dx =  (structure.dt * LIGHTSPEED) / structure.courant; 
+
+// FIXME: check the courant factor for the max epsilon.
+
+    structure.dx =  (structure.dt * LIGHTSPEED) / structure.courant;
     checkCudaErrors(cudaMemcpyToSymbol(x_index_dim, &structure.x_index_dim,
                     sizeof(structure.x_index_dim)));
     checkCudaErrors(cudaMemcpyToSymbol(y_index_dim, &structure.y_index_dim,
@@ -82,6 +95,7 @@ int main(){
                     sizeof(structure.dt)));
     CPUAnimBitmap bitmap(structure.x_index_dim, structure.x_index_dim,
                             &data);
+
     data.bitmap = &bitmap;
     data.totalTime = 0;
     data.frames = 0;
@@ -90,31 +104,32 @@ int main(){
 
     checkCudaErrors(cudaMalloc( (void **) &data.output_bitmap,
                     bitmap.image_size()));
-    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_EZFIELD], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_HYFIELD], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_HXFIELD], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.constants[MUINDEX], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.constants[EPSINDEX], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMAINDEX], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMA_STAR_INDEX], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.dev_const, bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.coefs[0], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.coefs[1], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.coefs[2], bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.coefs[3], bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_EZFIELD],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_HYFIELD],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_HXFIELD],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.constants[MUINDEX],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.constants[EPSINDEX],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMAINDEX],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMA_STAR_INDEX],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.dev_const,
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.coefs[0],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.coefs[1],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.coefs[2],
+                    bitmap.image_size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data.coefs[3],
+                    bitmap.image_size() ));
 
-//  get the coefficients
-    dim3 blocks(DIM / 16, DIM / 16);
-    dim3 threads(16, 16);
 
-    te_getcoeff<<<blocks, threads>>>(data.constants[0],
-                                     data.constants[1],
-                                     data.constants[2],
-                                     data.constants[3],
-                                     data.coefs[0],
-                                     data.coefs[1],
-                                     data.coefs[2],
-                                     data.coefs[3]);
     float *temp = (float *) malloc(bitmap.image_size() );
     float *temp_mu = (float *) malloc(bitmap.image_size() );
     for(int i=0;i<structure.x_index_dim;i++)
@@ -126,7 +141,7 @@ int main(){
 
     for(int i=0;i<structure.x_index_dim;i++)
         for(int j=0;j<structure.y_index_dim;j++)
-            temp_mu[i + j * structure.x_index_dim] = EPSILON;
+            temp_mu[i + j * structure.x_index_dim] = EPSILON * 20;
 
     checkCudaErrors(cudaMemcpy(data.constants[EPSINDEX], temp_mu, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
@@ -138,6 +153,7 @@ int main(){
     for(int i=0;i<structure.x_index_dim;i++)
         for(int j=0;j<structure.y_index_dim;j++)
             temp[i + j * structure.x_index_dim] = 0;
+
     checkCudaErrors(cudaMemcpy(data.constants[SIGMAINDEX], temp_mu, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(data.constants[SIGMA_STAR_INDEX], temp_mu, bitmap.image_size(),
@@ -148,6 +164,25 @@ int main(){
                     cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(data.fields[TE_HYFIELD], temp, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
+
+//  get the coefficients
+// FIXME: Use of DIM
+    dim3 blocks(DIM / 16, DIM / 16);
+    dim3 threads(16, 16);
+
+    te_getcoeff<<<blocks, threads>>>(data.constants[0],
+                                     data.constants[1],
+                                     data.constants[2],
+                                     data.constants[3],
+                                     data.coefs[0],
+                                     data.coefs[1],
+                                     data.coefs[2],
+                                     data.coefs[3]);
+    cudaFree(data.constants[0]);
+    cudaFree(data.constants[1]);
+    cudaFree(data.constants[2]);
+    cudaFree(data.constants[3]);
+
 
     for(int i= 125; i< 129;i++)
         for(int j=125; j<129;j++)
