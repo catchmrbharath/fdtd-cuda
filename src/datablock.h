@@ -13,6 +13,8 @@ typedef struct {
     char * name;
 } Structure;
 
+
+#define BLOCKSIZE 16
 #define TE_SIMULATION 0
 
 #define TE_HXFIELD 0
