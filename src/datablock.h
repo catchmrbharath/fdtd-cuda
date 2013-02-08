@@ -11,10 +11,17 @@ typedef struct {
     long total_ticks;
     long present_ticks;
     char * name;
+    long * x_source_positions;
+    long * y_source_positions;
+    int * source_type;
 } Structure;
 
 
-#define BLOCKSIZE 16
+#define BLOCKSIZE_X 256
+#define BLOCKSIZE_Y 1
+#define BLOCKSIZE_HY 1
+#define BLOCKSIZE_HX 256
+
 #define TE_SIMULATION 0
 
 #define TE_HXFIELD 0
