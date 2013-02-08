@@ -45,10 +45,15 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
     int left = offset - 1;
     int bottom = offset - x_index_dim;
 
-    if (x > 0 && y > 0 && x<x_index_dim - 1 && y < y_index_dim - 1)
+    if (x > 0 && y > 0 && x<x_index_dim - 1 && y < y_index_dim - 1){
+        /*float temp1 = Hy[offset] - Hy[left];*/
+        /*float temp2 = Hx[offset] - Hx[bottom];*/
+        /*float temp3 = coef1[offset] * Ez[offset];*/
+        /*Ez[offset] = temp3 + coef2[offset] * (temp1 - temp2);*/
         Ez[offset] = coef1[offset] * Ez[offset] +
                     coef2[offset] * ((Hy[offset] - Hy[left]) -
                                     (Hx[offset] - Hx[bottom]));
+    }
 
     __syncthreads();
 }

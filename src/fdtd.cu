@@ -12,21 +12,24 @@
 
 #define DIM 1024
 
+
 void anim_gpu(Datablock *d, int ticks){
     checkCudaErrors(cudaEventRecord(d->start, 0) );
-    
-    // FIXME Use of Dim
+    dim3 blocks((d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
+                (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
 
-    dim3 blocks((DIM + BLOCKSIZE - 1) / BLOCKSIZE,
-                (DIM + BLOCKSIZE - 1) / BLOCKSIZE);
+    dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
-    dim3 threads(BLOCKSIZE, BLOCKSIZE);
+    dim3 blocksnew((d->structure->x_index_dim + BLOCKSIZE_HX - 1) / BLOCKSIZE_HX,
+                (d->structure->y_index_dim + BLOCKSIZE_HY - 1) / BLOCKSIZE_HY);
+
+    dim3 threadsnew(BLOCKSIZE_HX, BLOCKSIZE_HY);
     CPUAnimBitmap *bitmap = d->bitmap;
     for(int i=0;i<100;i++){
         copy_const_kernel<<<blocks, threads>>>(d->fields[TE_EZFIELD],
                                                 d->dev_const);
 
-        update_Hx<<<blocks, threads>>>(d->fields[TE_HXFIELD],
+        update_Hx<<<blocksnew, threadsnew>>>(d->fields[TE_HXFIELD],
                                         d->fields[TE_EZFIELD],
                                         d->coefs[0],
                                         d->coefs[1]);
@@ -54,7 +57,7 @@ void anim_gpu(Datablock *d, int ticks){
     checkCudaErrors(cudaEventElapsedTime(&elapsedTime, d->start, d->stop));
     d->totalTime +=elapsedTime;
     d->frames +=1;
-    printf("Average time per frame: %3.1f ms\n", d->totalTime / d->frames);
+    printf("Average time per frame: %3.1f ms\n", elapsedTime);
 }
 
 void anim_exit(Datablock *d){
@@ -99,6 +102,7 @@ int main(){
     data.bitmap = &bitmap;
     data.totalTime = 0;
     data.frames = 0;
+    data.structure = &structure;
     checkCudaErrors(cudaEventCreate(&data.start, 1) );
     checkCudaErrors(cudaEventCreate(&data.stop, 1) );
 
@@ -167,8 +171,10 @@ int main(){
 
 //  get the coefficients
 // FIXME: Use of DIM
-    dim3 blocks(DIM / 16, DIM / 16);
-    dim3 threads(16, 16);
+
+    dim3 blocks((structure.x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
+                (structure.y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
+    dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
     te_getcoeff<<<blocks, threads>>>(data.constants[0],
                                      data.constants[1],
