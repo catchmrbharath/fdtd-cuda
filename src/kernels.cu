@@ -59,6 +59,7 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
 }
 
 
+
 __global__ void te_getcoeff(float *mu,
                                 float * epsilon,
                                 float *sigma,

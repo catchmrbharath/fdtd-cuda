@@ -9,7 +9,7 @@ class structure{
         int xdim; //No. of x values in the grid
         int ydim; //No of y values in the grid.
         float xsize; //length of the actual physical structure.
-        float ysize; 
+        float ysize;
         float delta;
         float deltat;
         float S;
@@ -17,7 +17,6 @@ class structure{
         float* epsilon;
         float* mu;
         float* sigmastar;
-        
         void calculate_dim();
         void calculate_deltat();
         void set_background_epsilonr(float epsilonr);

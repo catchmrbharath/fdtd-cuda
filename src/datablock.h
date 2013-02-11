@@ -17,10 +17,13 @@ typedef struct {
 } Structure;
 
 
+// This gives the best results
 #define BLOCKSIZE_X 256
 #define BLOCKSIZE_Y 1
-#define BLOCKSIZE_HY 1
+
+
 #define BLOCKSIZE_HX 256
+#define BLOCKSIZE_HY 1
 
 #define TE_SIMULATION 0
 
