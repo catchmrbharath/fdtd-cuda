@@ -1,6 +1,7 @@
 #ifndef __DATABLOCK__
 #define __DATABLOCK__
-typedef struct {
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
 struct Structure{
     float xdim;
     float ydim;
@@ -12,10 +13,13 @@ struct Structure{
     long total_ticks;
     long present_ticks;
     char * name;
-    long * x_source_positions;
-    long * y_source_positions;
-    int * source_type;
-} Structure;
+    thrust::host_vector<int> host_x_source_position;
+    thrust::host_vector<int> host_y_source_position;
+    thrust::device_vector<int> device_x_source_position;
+    thrust::device_vector<int> device_y_source_position;
+    thrust::host_vector<int> host_source_type;
+    thrust::device_vector<int> device_source_type;
+
     Structure(int xindexdim, int yindexdim, float dxin, float dtin){
         x_index_dim =xindexdim;
         y_index_dim = yindexdim;
@@ -33,6 +37,7 @@ struct Structure{
         host_source_type.push_back(0);
     }
 };
+
 
 // This gives the best results
 #define BLOCKSIZE_X 256
@@ -64,9 +69,11 @@ struct Datablock{
     cudaEvent_t start, stop;
     float totalTime;
     float frames;
+    int simulationType;
     Structure * structure;
 
     Datablock(int type){
+        simulationType = type;
         if(type == TE_SIMULATION){
             fields = (float **) malloc(sizeof(float *) * 3);
             constants = (float **) malloc(sizeof(float *) * 4);
