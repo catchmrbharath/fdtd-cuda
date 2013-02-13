@@ -17,17 +17,12 @@ void anim_gpu(Datablock *d, int ticks){
                 (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
 
     dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
-
-    dim3 blocksnew((d->structure->x_index_dim + BLOCKSIZE_HX - 1) / BLOCKSIZE_HX,
-                (d->structure->y_index_dim + BLOCKSIZE_HY - 1) / BLOCKSIZE_HY);
-
-    dim3 threadsnew(BLOCKSIZE_HX, BLOCKSIZE_HY);
     CPUAnimBitmap *bitmap = d->bitmap;
     for(int i=0;i<100;i++){
         copy_const_kernel<<<blocks, threads>>>(d->fields[TE_EZFIELD],
                                                 d->dev_const);
 
-        update_Hx<<<blocksnew, threadsnew>>>(d->fields[TE_HXFIELD],
+        update_Hx<<<blocks, threads>>>(d->fields[TE_HXFIELD],
                                         d->fields[TE_EZFIELD],
                                         d->coefs[0],
                                         d->coefs[1]);
@@ -168,7 +163,6 @@ int main(){
                     cudaMemcpyHostToDevice));
 
 //  get the coefficients
-// FIXME: Use of DIM
 
     dim3 blocks((structure.x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
                 (structure.y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
