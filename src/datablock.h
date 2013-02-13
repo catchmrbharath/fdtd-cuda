@@ -1,6 +1,7 @@
 #ifndef __DATABLOCK__
 #define __DATABLOCK__
 typedef struct {
+struct Structure{
     float xdim;
     float ydim;
     int x_index_dim;
@@ -15,7 +16,23 @@ typedef struct {
     long * y_source_positions;
     int * source_type;
 } Structure;
+    Structure(int xindexdim, int yindexdim, float dxin, float dtin){
+        x_index_dim =xindexdim;
+        y_index_dim = yindexdim;
+        dx = dxin;
+        dt = dtin;
+    }
 
+    int size(){
+        return x_index_dim * y_index_dim * 4;
+    }
+
+    void set_sources(int x, int y, int source_type){
+        host_x_source_position.push_back(x);
+        host_y_source_position.push_back(y);
+        host_source_type.push_back(0);
+    }
+};
 
 // This gives the best results
 #define BLOCKSIZE_X 256

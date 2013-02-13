@@ -70,17 +70,47 @@ void anim_exit(Datablock *d){
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
 
+void allocateTEMemory(Datablock *data, Structure *structure){
+    printf("The size of the structure is %d", structure->size());
+
+    checkCudaErrors(cudaMalloc( (void **) &data->output_bitmap,
+                    structure->size()));
+    checkCudaErrors(cudaMalloc( (void **) &data->fields[TE_EZFIELD],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->fields[TE_HYFIELD],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->fields[TE_HXFIELD],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->constants[MUINDEX],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->constants[EPSINDEX],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->constants[SIGMAINDEX],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->constants[SIGMA_STAR_INDEX],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->dev_const,
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->coefs[0],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->coefs[1],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->coefs[2],
+                    structure->size() ));
+    checkCudaErrors(cudaMalloc( (void **) &data->coefs[3],
+                    structure->size() ));
+
+}
+
 int main(){
     Datablock data(TE_SIMULATION);
-    Structure structure;
-    structure.x_index_dim = 1024;
-    structure.y_index_dim = 1024;
-    structure.dt= 0.5;
-    structure.courant = 0.5;
-
+    float dt= 0.5;
 // FIXME: check the courant factor for the max epsilon.
+    float courant = 0.5;
+    float dx =  (dt * LIGHTSPEED) / courant;
+    Structure structure(1024, 1024, dx, dt);
 
-    structure.dx =  (structure.dt * LIGHTSPEED) / structure.courant;
+
     checkCudaErrors(cudaMemcpyToSymbol(x_index_dim, &structure.x_index_dim,
                     sizeof(structure.x_index_dim)));
     checkCudaErrors(cudaMemcpyToSymbol(y_index_dim, &structure.y_index_dim,
@@ -98,33 +128,7 @@ int main(){
     data.structure = &structure;
     checkCudaErrors(cudaEventCreate(&data.start, 1) );
     checkCudaErrors(cudaEventCreate(&data.stop, 1) );
-
-    checkCudaErrors(cudaMalloc( (void **) &data.output_bitmap,
-                    bitmap.image_size()));
-    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_EZFIELD],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_HYFIELD],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.fields[TE_HXFIELD],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.constants[MUINDEX],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.constants[EPSINDEX],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMAINDEX],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.constants[SIGMA_STAR_INDEX],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.dev_const,
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.coefs[0],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.coefs[1],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.coefs[2],
-                    bitmap.image_size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data.coefs[3],
-                    bitmap.image_size() ));
+    allocateTEMemory(&data, &structure);
 
 
     float *temp = (float *) malloc(bitmap.image_size() );
