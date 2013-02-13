@@ -10,8 +10,6 @@
 #include "kernels.cu"
 #include "constants.h"
 
-#define DIM 1024
-
 
 void anim_gpu(Datablock *d, int ticks){
     checkCudaErrors(cudaEventRecord(d->start, 0) );

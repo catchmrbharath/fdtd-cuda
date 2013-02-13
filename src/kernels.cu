@@ -6,7 +6,7 @@ __device__ __constant__ float deltat;
 __global__ void copy_const_kernel(float *iptr, const float *cptr){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = x + y * x_index_dim;
     if(cptr[offset] != 0){
         iptr[offset] = cptr[offset];
     }
@@ -16,7 +16,7 @@ __global__ void copy_const_kernel(float *iptr, const float *cptr){
 __global__ void update_Hx(float *Hx, float *Ez, float *coef1, float* coef2){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = x + y * x_index_dim;
     int top = offset + x_index_dim;
     if(y < y_index_dim -1)
         Hx[offset] = coef1[offset] * Hx[offset]
@@ -28,7 +28,7 @@ __global__ void update_Hy(float *Hy, float *Ez, float * coef1, float * coef2){
 
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = x + y * x_index_dim;
     int right = offset + 1;
     if(x < x_index_dim -1)
         Hy[offset] = coef1[offset] * Hy[offset] + 
