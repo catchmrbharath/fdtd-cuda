@@ -21,14 +21,20 @@ struct Structure{
     thrust::device_vector<int> device_source_type;
 
     Structure(int xindexdim, int yindexdim, float dxin, float dtin){
-        x_index_dim =xindexdim;
+        x_index_dim = xindexdim;
         y_index_dim = yindexdim;
         dx = dxin;
         dt = dtin;
     }
 
     int size(){
-        return x_index_dim * y_index_dim * 4;
+        return (long)(x_index_dim * y_index_dim * 4);
+    }
+
+    int grid_size(){
+        long temp = x_index_dim * y_index_dim;
+        printf("The size is %ld\n", temp);
+        return (long) (x_index_dim * y_index_dim);
     }
 
     void set_sources(int x, int y, int source_type){

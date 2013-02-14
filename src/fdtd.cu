@@ -9,6 +9,8 @@
 #include "datablock.h"
 #include "kernels.cu"
 #include "constants.h"
+#include <thrust/fill.h>
+#include<algorithm>
 
 
 void anim_gpu(Datablock *d, int ticks){
@@ -70,35 +72,71 @@ void anim_exit(Datablock *d){
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
 
-void allocateTEMemory(Datablock *data, Structure *structure){
-    printf("The size of the structure is %d", structure->size());
+void allocateTEMemory(Datablock *data, Structure structure){
+    printf("The size of the structure is %ld", structure.size());
 
     checkCudaErrors(cudaMalloc( (void **) &data->output_bitmap,
-                    structure->size()));
+                    structure.size()));
     checkCudaErrors(cudaMalloc( (void **) &data->fields[TE_EZFIELD],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->fields[TE_HYFIELD],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->fields[TE_HXFIELD],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->constants[MUINDEX],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->constants[EPSINDEX],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->constants[SIGMAINDEX],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->constants[SIGMA_STAR_INDEX],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->dev_const,
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->coefs[0],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->coefs[1],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->coefs[2],
-                    structure->size() ));
+                    structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->coefs[3],
-                    structure->size() ));
+                    structure.size() ));
+
+}
+
+
+void initializeArrays(Datablock *data, Structure structure){
+    int size = structure.grid_size();
+    printf("%ld\n", size);
+    printf("%ld\n", structure.x_index_dim);
+    printf("%ld\n", structure.y_index_dim);
+
+    // FIXME: Temporary fix for populating values.
+    float * temp = (float *) malloc(structure.size());
+    std::fill_n(temp, size, MU);
+    cudaMemcpy(data->constants[MUINDEX],temp,structure.size(),
+                cudaMemcpyHostToDevice);
+
+    std::fill_n(temp, size, EPSILON * 20);
+    cudaMemcpy(data->constants[EPSINDEX],temp,structure.size(),
+                cudaMemcpyHostToDevice);
+
+    std::fill_n(temp, size, 0.0);
+    cudaMemcpy(data->constants[SIGMAINDEX],temp,structure.size(),
+                cudaMemcpyHostToDevice);
+
+    std::fill_n(temp, size, 0.0);
+    cudaMemcpy(data->constants[SIGMA_STAR_INDEX],temp,structure.size(),
+                cudaMemcpyHostToDevice);
+
+    thrust::device_ptr<float> hx_field_ptr(data->fields[TE_HXFIELD]);
+    thrust::fill(hx_field_ptr, hx_field_ptr + size, 0);
+
+    thrust::device_ptr<float> hy_field_ptr(data->fields[TE_HYFIELD]);
+    thrust::fill(hy_field_ptr, hy_field_ptr + size, 0);
+
+    thrust::device_ptr<float> ez_field_ptr(data->fields[TE_EZFIELD]);
+    thrust::fill(ez_field_ptr, ez_field_ptr + size, 0);
 
 }
 
@@ -121,50 +159,15 @@ int main(){
                     sizeof(structure.dt)));
     CPUAnimBitmap bitmap(structure.x_index_dim, structure.x_index_dim,
                             &data);
-
     data.bitmap = &bitmap;
     data.totalTime = 0;
     data.frames = 0;
     data.structure = &structure;
     checkCudaErrors(cudaEventCreate(&data.start, 1) );
     checkCudaErrors(cudaEventCreate(&data.stop, 1) );
-    allocateTEMemory(&data, &structure);
+    allocateTEMemory(&data, structure);
+    initializeArrays(&data, structure);
 
-
-    float *temp = (float *) malloc(bitmap.image_size() );
-    float *temp_mu = (float *) malloc(bitmap.image_size() );
-    for(int i=0;i<structure.x_index_dim;i++)
-        for(int j=0;j<structure.y_index_dim;j++)
-            temp_mu[i + j * structure.x_index_dim] = MU;
-
-    checkCudaErrors(cudaMemcpy(data.constants[MUINDEX], temp_mu, bitmap.image_size(),
-                    cudaMemcpyHostToDevice));
-
-    for(int i=0;i<structure.x_index_dim;i++)
-        for(int j=0;j<structure.y_index_dim;j++)
-            temp_mu[i + j * structure.x_index_dim] = EPSILON * 20;
-
-    checkCudaErrors(cudaMemcpy(data.constants[EPSINDEX], temp_mu, bitmap.image_size(),
-                    cudaMemcpyHostToDevice));
-
-    for(int i=0;i<structure.x_index_dim;i++)
-        for(int j=0;j<structure.y_index_dim;j++)
-            temp_mu[i + j * structure.x_index_dim] = 0;
-
-    for(int i=0;i<structure.x_index_dim;i++)
-        for(int j=0;j<structure.y_index_dim;j++)
-            temp[i + j * structure.x_index_dim] = 0;
-
-    checkCudaErrors(cudaMemcpy(data.constants[SIGMAINDEX], temp_mu, bitmap.image_size(),
-                    cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.constants[SIGMA_STAR_INDEX], temp_mu, bitmap.image_size(),
-                    cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.fields[TE_EZFIELD], temp, bitmap.image_size(),
-                    cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.fields[TE_HXFIELD], temp, bitmap.image_size(),
-                    cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(data.fields[TE_HYFIELD], temp, bitmap.image_size(),
-                    cudaMemcpyHostToDevice));
 
 //  get the coefficients
 
@@ -180,12 +183,14 @@ int main(){
                                      data.coefs[1],
                                      data.coefs[2],
                                      data.coefs[3]);
+
     cudaFree(data.constants[0]);
     cudaFree(data.constants[1]);
     cudaFree(data.constants[2]);
     cudaFree(data.constants[3]);
 
 
+    float * temp = (float *)(malloc(structure.size()));
     for(int i= 125; i< 129;i++)
         for(int j=125; j<129;j++)
         temp[256 * j + i] = 1;
@@ -193,7 +198,6 @@ int main(){
     checkCudaErrors(cudaMemcpy(data.dev_const, temp, bitmap.image_size(),
                     cudaMemcpyHostToDevice));
     free(temp);
-    free(temp_mu);
     bitmap.anim_and_exit( (void (*)(void *, int)) anim_gpu,
                             (void (*)(void *)) anim_exit);
 }
