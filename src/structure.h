@@ -2,31 +2,45 @@
 #define _STRUCTURE_H_
 #include "cuda.h"
 #include<vector>
+#include "hostsources.h"
 
+struct Structure{
+    float xdim;
+    float ydim;
+    int x_index_dim;
+    int y_index_dim;
+    float courant;
+    float dx;
+    float dt;
+    long total_ticks;
+    long present_ticks;
+    char * name;
+    HostSources * sources;
 
-class structure{
-    public:
-        int xdim; //No. of x values in the grid
-        int ydim; //No of y values in the grid.
-        float xsize; //length of the actual physical structure.
-        float ysize;
-        float delta;
-        float deltat;
-        float S;
-        float* sigma;
-        float* epsilon;
-        float* mu;
-        float* sigmastar;
-        void calculate_dim();
-        void calculate_deltat();
-        void set_background_epsilonr(float epsilonr);
-        void set_background_mur(float mur);
-        void set_background_sigma(float sigma);
-        void set_background_sigma_star(float sigma_star);
-        void populate_epsilon(const vector<pair<int, int> > coords);
-        void populate_mu(const vector< pair<int, int> > coords);
-        void populate_sigma(const vector<pair<int, int> > coords);
-        void populate_sigma_star(const vector<pair<int, int> > coords);
-        void read_structure(char * filename);
+    Structure(int xindexdim, int yindexdim, float dxin, float dtin){
+        x_index_dim = xindexdim;
+        y_index_dim = yindexdim;
+        dx = dxin;
+        dt = dtin;
+    }
 
-} Structure;
+    int size(){
+        return (long)(x_index_dim * y_index_dim * 4);
+    }
+
+    int grid_size(){
+        long temp = x_index_dim * y_index_dim;
+        printf("The size is %ld\n", temp);
+        return (long) (x_index_dim * y_index_dim);
+    }
+
+    void set_sources(int x, int y, int source_type){
+        //FIXME Add different types of sources.
+        sources->x_source_position.push_back(x);
+        sources->y_source_position.push_back(y);
+        sources->source_type.push_back(0);
+        sources->mean.push_back(1);
+        sources->variance.push_back(0);
+    }
+};
+#endif

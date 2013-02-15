@@ -1,50 +1,9 @@
 #ifndef __DATABLOCK__
 #define __DATABLOCK__
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
-struct Structure{
-    float xdim;
-    float ydim;
-    int x_index_dim;
-    int y_index_dim;
-    float courant;
-    float dx;
-    float dt;
-    long total_ticks;
-    long present_ticks;
-    char * name;
-    thrust::host_vector<int> host_x_source_position;
-    thrust::host_vector<int> host_y_source_position;
-    thrust::device_vector<int> device_x_source_position;
-    thrust::device_vector<int> device_y_source_position;
-    thrust::host_vector<int> host_source_type;
-    thrust::device_vector<int> device_source_type;
-
-    Structure(int xindexdim, int yindexdim, float dxin, float dtin){
-        x_index_dim = xindexdim;
-        y_index_dim = yindexdim;
-        dx = dxin;
-        dt = dtin;
-    }
-
-    int size(){
-        return (long)(x_index_dim * y_index_dim * 4);
-    }
-
-    int grid_size(){
-        long temp = x_index_dim * y_index_dim;
-        printf("The size is %ld\n", temp);
-        return (long) (x_index_dim * y_index_dim);
-    }
-
-    void set_sources(int x, int y, int source_type){
-        host_x_source_position.push_back(x);
-        host_y_source_position.push_back(y);
-        host_source_type.push_back(0);
-    }
-};
-
-
+#include<vector>
+#include "structure.h"
+#include "devicesources.h"
+#include "hostsources.h"
 // This gives the best results
 #define BLOCKSIZE_X 256
 #define BLOCKSIZE_Y 1
@@ -77,6 +36,8 @@ struct Datablock{
     float frames;
     int simulationType;
     Structure * structure;
+    int number_of_sources;
+    DeviceSources sources;
 
     Datablock(int type){
         simulationType = type;

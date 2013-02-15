@@ -101,7 +101,6 @@ void allocateTEMemory(Datablock *data, Structure structure){
                     structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->coefs[3],
                     structure.size() ));
-
 }
 
 
@@ -112,6 +111,7 @@ void initializeArrays(Datablock *data, Structure structure){
     printf("%ld\n", structure.y_index_dim);
 
     // FIXME: Temporary fix for populating values.
+
     float * temp = (float *) malloc(structure.size());
     std::fill_n(temp, size, MU);
     cudaMemcpy(data->constants[MUINDEX],temp,structure.size(),
@@ -140,6 +140,44 @@ void initializeArrays(Datablock *data, Structure structure){
 
 }
 
+void copy_sources(HostSources * host_sources, DeviceSources *device_sources){
+    int number_of_sources = host_sources->get_size();
+    checkCudaErrors(cudaMalloc((void**)&device_sources->x_source_position,
+                number_of_sources * sizeof(int)));
+    checkCudaErrors(cudaMalloc((void**)&device_sources->y_source_position,
+                number_of_sources * sizeof(int)));
+    checkCudaErrors(cudaMalloc((void**)&device_sources->source_type,
+                number_of_sources * sizeof(int)));
+    checkCudaErrors(cudaMalloc((void**)&device_sources->mean,
+                number_of_sources * sizeof(float)));
+    checkCudaErrors(cudaMalloc((void**)&device_sources->variance,
+                number_of_sources * sizeof(float)));
+
+    if(number_of_sources != 0){
+    int *host_source_ptr = &(host_sources->x_source_position[0]);
+    checkCudaErrors(cudaMemcpy(device_sources->x_source_position, host_source_ptr,
+                sizeof(int) * number_of_sources,cudaMemcpyHostToDevice));
+
+
+    host_source_ptr = &(host_sources->y_source_position[0]);
+    checkCudaErrors(cudaMemcpy(device_sources->y_source_position, host_source_ptr,
+                sizeof(int) * number_of_sources,cudaMemcpyHostToDevice));
+
+
+    host_source_ptr = &(host_sources->source_type[0]);
+    checkCudaErrors(cudaMemcpy(device_sources->source_type, host_source_ptr,
+                sizeof(int) * number_of_sources, cudaMemcpyHostToDevice));
+
+    float * mean_ptr = &(host_sources->mean[0]);
+    checkCudaErrors(cudaMemcpy(device_sources->mean, mean_ptr,
+                sizeof(float) * number_of_sources, cudaMemcpyHostToDevice));
+
+    float * variance_ptr = &(host_sources->variance[0]);
+    checkCudaErrors(cudaMemcpy(device_sources->mean, mean_ptr,
+                sizeof(float) * number_of_sources, cudaMemcpyHostToDevice));
+    }
+}
+
 int main(){
     Datablock data(TE_SIMULATION);
     float dt= 0.5;
@@ -165,6 +203,7 @@ int main(){
     data.structure = &structure;
     checkCudaErrors(cudaEventCreate(&data.start, 1) );
     checkCudaErrors(cudaEventCreate(&data.stop, 1) );
+
     allocateTEMemory(&data, structure);
     initializeArrays(&data, structure);
 
