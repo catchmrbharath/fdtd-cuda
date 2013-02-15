@@ -3,16 +3,17 @@ __device__ __constant__ int y_index_dim;
 __device__ __constant__ float delta;
 __device__ __constant__ float deltat;
 
-__global__ void copy_const_kernel(float *iptr, const float *cptr){
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
-    if(cptr[offset] != 0){
-        iptr[offset] = cptr[offset];
+__global__ void copy_sources(float * target, int * x_position, int *y_position,
+                            int * type, float * mean, float * variance,
+                            int sources_size) {
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    if(i<sources_size){
+        int x = x_position[i];
+        int y = y_position[i];
+        target[x + y * x_index_dim] = 1;
     }
     __syncthreads();
 }
-
 __global__ void update_Hx(float *Hx, float *Ez, float *coef1, float* coef2){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;

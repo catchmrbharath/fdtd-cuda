@@ -17,12 +17,22 @@ void anim_gpu(Datablock *d, int ticks){
     checkCudaErrors(cudaEventRecord(d->start, 0) );
     dim3 blocks((d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
                 (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
-
     dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
+
+    dim3 source_threads(64, 1);
+    dim3 source_blocks((d->sources->size + 63) / 64, 1);
+
     CPUAnimBitmap *bitmap = d->bitmap;
+
     for(int i=0;i<100;i++){
-        copy_const_kernel<<<blocks, threads>>>(d->fields[TE_EZFIELD],
-                                                d->dev_const);
+        copy_sources<<<source_blocks, source_threads>>>(
+                d->fields[TE_EZFIELD],
+                d->sources->x_source_position,
+                d->sources->y_source_position,
+                d->sources->source_type,
+                d->sources->mean,
+                d->sources->variance,
+                d->sources->size);
 
         update_Hx<<<blocks, threads>>>(d->fields[TE_HXFIELD],
                                         d->fields[TE_EZFIELD],
@@ -67,7 +77,11 @@ void anim_exit(Datablock *d){
     cudaFree(d->coefs[1]);
     cudaFree(d->coefs[2]);
     cudaFree(d->coefs[3]);
-    cudaFree(d->dev_const);
+    cudaFree(d->sources->x_source_position);
+    cudaFree(d->sources->y_source_position);
+    cudaFree(d->sources->source_type);
+    cudaFree(d->sources->mean);
+    cudaFree(d->sources->variance);
     checkCudaErrors(cudaEventDestroy(d->start) );
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
@@ -90,8 +104,6 @@ void allocateTEMemory(Datablock *data, Structure structure){
     checkCudaErrors(cudaMalloc( (void **) &data->constants[SIGMAINDEX],
                     structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->constants[SIGMA_STAR_INDEX],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->dev_const,
                     structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->coefs[0],
                     structure.size() ));
@@ -142,6 +154,7 @@ void initializeArrays(Datablock *data, Structure structure){
 
 void copy_sources(HostSources * host_sources, DeviceSources *device_sources){
     int number_of_sources = host_sources->get_size();
+    device_sources->size = number_of_sources;
     checkCudaErrors(cudaMalloc((void**)&device_sources->x_source_position,
                 number_of_sources * sizeof(int)));
     checkCudaErrors(cudaMalloc((void**)&device_sources->y_source_position,
@@ -197,6 +210,7 @@ int main(){
                     sizeof(structure.dt)));
     CPUAnimBitmap bitmap(structure.x_index_dim, structure.x_index_dim,
                             &data);
+
     data.bitmap = &bitmap;
     data.totalTime = 0;
     data.frames = 0;
@@ -228,15 +242,13 @@ int main(){
     cudaFree(data.constants[2]);
     cudaFree(data.constants[3]);
 
+// set the sources
+    HostSources host_sources;
+    DeviceSources device_sources;
+    host_sources.add_source(512, 512, 0, 0, 1);
+    data.sources = &device_sources;
+    copy_sources(&host_sources, &device_sources);
 
-    float * temp = (float *)(malloc(structure.size()));
-    for(int i= 125; i< 129;i++)
-        for(int j=125; j<129;j++)
-        temp[256 * j + i] = 1;
-
-    checkCudaErrors(cudaMemcpy(data.dev_const, temp, bitmap.image_size(),
-                    cudaMemcpyHostToDevice));
-    free(temp);
     bitmap.anim_and_exit( (void (*)(void *, int)) anim_gpu,
                             (void (*)(void *)) anim_exit);
 }

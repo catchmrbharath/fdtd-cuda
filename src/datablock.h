@@ -27,7 +27,6 @@ struct Datablock{
     unsigned char *output_bitmap;
     float ** fields;
     float ** constants;
-    float * dev_const;
     float *field;
     float ** coefs;
     CPUAnimBitmap *bitmap;
@@ -37,7 +36,7 @@ struct Datablock{
     int simulationType;
     Structure * structure;
     int number_of_sources;
-    DeviceSources sources;
+    DeviceSources * sources;
 
     Datablock(int type){
         simulationType = type;
