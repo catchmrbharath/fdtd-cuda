@@ -1,3 +1,4 @@
+#include "hostsources.h"
 __device__ __constant__ int x_index_dim;
 __device__ __constant__ int y_index_dim;
 __device__ __constant__ float delta;
@@ -5,12 +6,20 @@ __device__ __constant__ float deltat;
 
 __global__ void copy_sources(float * target, int * x_position, int *y_position,
                             int * type, float * mean, float * variance,
-                            int sources_size) {
+                            int sources_size, long time_ticks) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if(i<sources_size){
         int x = x_position[i];
         int y = y_position[i];
-        target[x + y * x_index_dim] = 1;
+        if (type[i] == CONSTANT_SOURCE )
+            target[x + y * x_index_dim] = variance[i];
+        else if (type[i] == SINUSOID_SOURCE){
+            float temp = sinf(mean[i] * time_ticks * deltat);
+            float temp2 = variance[i];
+            target[x + y * x_index_dim] = temp2 * temp;
+        }
+        else
+            target[x + y * x_index_dim] = 1;
     }
     __syncthreads();
 }

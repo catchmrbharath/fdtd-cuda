@@ -23,8 +23,11 @@ void anim_gpu(Datablock *d, int ticks){
     dim3 source_blocks((d->sources->size + 63) / 64, 1);
 
     CPUAnimBitmap *bitmap = d->bitmap;
-
+    static long time_ticks = 0;
+    printf("time ticks = %ld", time_ticks);
+    printf("time ticks = %ld", time_ticks);
     for(int i=0;i<100;i++){
+        time_ticks += 1;
         copy_sources<<<source_blocks, source_threads>>>(
                 d->fields[TE_EZFIELD],
                 d->sources->x_source_position,
@@ -32,7 +35,8 @@ void anim_gpu(Datablock *d, int ticks){
                 d->sources->source_type,
                 d->sources->mean,
                 d->sources->variance,
-                d->sources->size);
+                d->sources->size,
+                time_ticks);
 
         update_Hx<<<blocks, threads>>>(d->fields[TE_HXFIELD],
                                         d->fields[TE_EZFIELD],
@@ -186,7 +190,7 @@ void copy_sources(HostSources * host_sources, DeviceSources *device_sources){
                 sizeof(float) * number_of_sources, cudaMemcpyHostToDevice));
 
     float * variance_ptr = &(host_sources->variance[0]);
-    checkCudaErrors(cudaMemcpy(device_sources->mean, mean_ptr,
+    checkCudaErrors(cudaMemcpy(device_sources->variance, variance_ptr,
                 sizeof(float) * number_of_sources, cudaMemcpyHostToDevice));
     }
 }
@@ -245,7 +249,7 @@ int main(){
 // set the sources
     HostSources host_sources;
     DeviceSources device_sources;
-    host_sources.add_source(512, 512, 0, 0, 1);
+    host_sources.add_source(512, 512, SINUSOID_SOURCE, 0.05, 1);
     data.sources = &device_sources;
     copy_sources(&host_sources, &device_sources);
 

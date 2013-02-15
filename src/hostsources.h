@@ -1,5 +1,10 @@
 #ifndef __STRUCTURE__
 #define __STRUCTURE__
+
+#define CONSTANT_SOURCE 0
+#define SINUSOID_SOURCE 1
+#define GAUSSIAN_SOURCE 2
+
 #include<vector>
 struct HostSources{
     std::vector<int> x_source_position;
