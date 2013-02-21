@@ -1,9 +1,8 @@
 #include "hostsources.h"
-__device__ __constant__ int x_index_dim;
-__device__ __constant__ int y_index_dim;
-__device__ __constant__ float delta;
-__device__ __constant__ float deltat;
+#include "kernels.h"
 
+
+// TODO: Add gaussian sources.
 __global__ void copy_sources(float * target, int * x_position, int *y_position,
                             int * type, float * mean, float * variance,
                             int sources_size, long time_ticks) {
@@ -66,7 +65,7 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
 
 
 
-__global__ void te_getcoeff(float *mu,
+__global__ void tm_getcoeff(float *mu,
                                 float * epsilon,
                                 float *sigma,
                                 float * sigma_star,

@@ -29,7 +29,7 @@ void anim_gpu(Datablock *d, int ticks){
     for(int i=0;i<100;i++){
         time_ticks += 1;
         copy_sources<<<source_blocks, source_threads>>>(
-                d->fields[TE_EZFIELD],
+                d->fields[TM_EZFIELD],
                 d->sources->x_source_position,
                 d->sources->y_source_position,
                 d->sources->source_type,
@@ -38,24 +38,24 @@ void anim_gpu(Datablock *d, int ticks){
                 d->sources->size,
                 time_ticks);
 
-        update_Hx<<<blocks, threads>>>(d->fields[TE_HXFIELD],
-                                        d->fields[TE_EZFIELD],
+        update_Hx<<<blocks, threads>>>(d->fields[TM_HXFIELD],
+                                        d->fields[TM_EZFIELD],
                                         d->coefs[0],
                                         d->coefs[1]);
 
-        update_Hy<<<blocks, threads>>>(d->fields[TE_HYFIELD],
-                                        d->fields[TE_EZFIELD],
+        update_Hy<<<blocks, threads>>>(d->fields[TM_HYFIELD],
+                                        d->fields[TM_EZFIELD],
                                         d->coefs[0],
                                         d->coefs[1]);
 
-        update_Ez<<<blocks, threads>>>(d->fields[TE_HXFIELD],
-                                        d->fields[TE_HYFIELD],
-                                        d->fields[TE_EZFIELD],
+        update_Ez<<<blocks, threads>>>(d->fields[TM_HXFIELD],
+                                        d->fields[TM_HYFIELD],
+                                        d->fields[TM_EZFIELD],
                                         d->coefs[2],
                                         d->coefs[3]);
     }
     float_to_color<<<blocks, threads>>> (d->output_bitmap,
-                                        d->fields[TE_EZFIELD]);
+                                        d->fields[TM_EZFIELD]);
 
     checkCudaErrors(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap,
                         bitmap->image_size(), cudaMemcpyDeviceToHost));
@@ -70,9 +70,9 @@ void anim_gpu(Datablock *d, int ticks){
 }
 
 void anim_exit(Datablock *d){
-    cudaFree(d->fields[TE_EZFIELD]);
-    cudaFree(d->fields[TE_HYFIELD]);
-    cudaFree(d->fields[TE_HXFIELD]);
+    cudaFree(d->fields[TM_EZFIELD]);
+    cudaFree(d->fields[TM_HYFIELD]);
+    cudaFree(d->fields[TM_HXFIELD]);
     cudaFree(d->constants[SIGMAINDEX]);
     cudaFree(d->constants[SIGMA_STAR_INDEX]);
     cudaFree(d->constants[EPSINDEX]);
@@ -90,16 +90,16 @@ void anim_exit(Datablock *d){
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
 
-void allocateTEMemory(Datablock *data, Structure structure){
+void allocateTMMemory(Datablock *data, Structure structure){
     printf("The size of the structure is %ld", structure.size());
 
     checkCudaErrors(cudaMalloc( (void **) &data->output_bitmap,
                     structure.size()));
-    checkCudaErrors(cudaMalloc( (void **) &data->fields[TE_EZFIELD],
+    checkCudaErrors(cudaMalloc( (void **) &data->fields[TM_EZFIELD],
                     structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->fields[TE_HYFIELD],
+    checkCudaErrors(cudaMalloc( (void **) &data->fields[TM_HYFIELD],
                     structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->fields[TE_HXFIELD],
+    checkCudaErrors(cudaMalloc( (void **) &data->fields[TM_HXFIELD],
                     structure.size() ));
     checkCudaErrors(cudaMalloc( (void **) &data->constants[MUINDEX],
                     structure.size() ));
@@ -145,13 +145,13 @@ void initializeArrays(Datablock *data, Structure structure){
     cudaMemcpy(data->constants[SIGMA_STAR_INDEX],temp,structure.size(),
                 cudaMemcpyHostToDevice);
 
-    thrust::device_ptr<float> hx_field_ptr(data->fields[TE_HXFIELD]);
+    thrust::device_ptr<float> hx_field_ptr(data->fields[TM_HXFIELD]);
     thrust::fill(hx_field_ptr, hx_field_ptr + size, 0);
 
-    thrust::device_ptr<float> hy_field_ptr(data->fields[TE_HYFIELD]);
+    thrust::device_ptr<float> hy_field_ptr(data->fields[TM_HYFIELD]);
     thrust::fill(hy_field_ptr, hy_field_ptr + size, 0);
 
-    thrust::device_ptr<float> ez_field_ptr(data->fields[TE_EZFIELD]);
+    thrust::device_ptr<float> ez_field_ptr(data->fields[TM_EZFIELD]);
     thrust::fill(ez_field_ptr, ez_field_ptr + size, 0);
 
 }
@@ -196,7 +196,7 @@ void copy_sources(HostSources * host_sources, DeviceSources *device_sources){
 }
 
 int main(){
-    Datablock data(TE_SIMULATION);
+    Datablock data(TM_SIMULATION);
     float dt= 0.5;
 // FIXME: check the courant factor for the max epsilon.
     float courant = 0.5;
@@ -222,7 +222,7 @@ int main(){
     checkCudaErrors(cudaEventCreate(&data.start, 1) );
     checkCudaErrors(cudaEventCreate(&data.stop, 1) );
 
-    allocateTEMemory(&data, structure);
+    allocateTMMemory(&data, structure);
     initializeArrays(&data, structure);
 
 
@@ -232,7 +232,7 @@ int main(){
                 (structure.y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
     dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
-    te_getcoeff<<<blocks, threads>>>(data.constants[0],
+    tm_getcoeff<<<blocks, threads>>>(data.constants[0],
                                      data.constants[1],
                                      data.constants[2],
                                      data.constants[3],
@@ -250,6 +250,7 @@ int main(){
     HostSources host_sources;
     DeviceSources device_sources;
     host_sources.add_source(512, 512, SINUSOID_SOURCE, 0.05, 1);
+    host_sources.add_source(256, 512, SINUSOID_SOURCE, 0.1, 1);
     data.sources = &device_sources;
     copy_sources(&host_sources, &device_sources);
 
