@@ -3,6 +3,7 @@
 #include "structure.h"
 #include "helper_cuda.h"
 #include "helper_functions.h"
+#include "devicesources.h"
 
 /* Be extremely careful with the use of constant device variables
    They are static i.e. they cannot be exposed to other functions in
@@ -36,4 +37,5 @@ __global__ void float_to_color( uchar4 *optr,
                               const float *outSrc );
 
 void copy_symbols(Structure *structure);
+void copy_sources(HostSources * host_sources, DeviceSources *device_sources);
 #endif
