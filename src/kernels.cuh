@@ -4,6 +4,7 @@
 #include "helper_cuda.h"
 #include "helper_functions.h"
 #include "devicesources.h"
+#include "hostsources.h"
 
 /* Be extremely careful with the use of constant device variables
    They are static i.e. they cannot be exposed to other functions in

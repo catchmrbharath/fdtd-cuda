@@ -34,44 +34,6 @@ void initializeArrays(Datablock *data, Structure structure){
         initialize_TM_arrays(data, structure);
 }
 
-void copy_sources(HostSources * host_sources, DeviceSources *device_sources){
-    int number_of_sources = host_sources->get_size();
-    device_sources->size = number_of_sources;
-    checkCudaErrors(cudaMalloc((void**)&device_sources->x_source_position,
-                number_of_sources * sizeof(int)));
-    checkCudaErrors(cudaMalloc((void**)&device_sources->y_source_position,
-                number_of_sources * sizeof(int)));
-    checkCudaErrors(cudaMalloc((void**)&device_sources->source_type,
-                number_of_sources * sizeof(int)));
-    checkCudaErrors(cudaMalloc((void**)&device_sources->mean,
-                number_of_sources * sizeof(float)));
-    checkCudaErrors(cudaMalloc((void**)&device_sources->variance,
-                number_of_sources * sizeof(float)));
-
-    if(number_of_sources != 0){
-    int *host_source_ptr = &(host_sources->x_source_position[0]);
-    checkCudaErrors(cudaMemcpy(device_sources->x_source_position, host_source_ptr,
-                sizeof(int) * number_of_sources,cudaMemcpyHostToDevice));
-
-
-    host_source_ptr = &(host_sources->y_source_position[0]);
-    checkCudaErrors(cudaMemcpy(device_sources->y_source_position, host_source_ptr,
-                sizeof(int) * number_of_sources,cudaMemcpyHostToDevice));
-
-
-    host_source_ptr = &(host_sources->source_type[0]);
-    checkCudaErrors(cudaMemcpy(device_sources->source_type, host_source_ptr,
-                sizeof(int) * number_of_sources, cudaMemcpyHostToDevice));
-
-    float * mean_ptr = &(host_sources->mean[0]);
-    checkCudaErrors(cudaMemcpy(device_sources->mean, mean_ptr,
-                sizeof(float) * number_of_sources, cudaMemcpyHostToDevice));
-
-    float * variance_ptr = &(host_sources->variance[0]);
-    checkCudaErrors(cudaMemcpy(device_sources->variance, variance_ptr,
-                sizeof(float) * number_of_sources, cudaMemcpyHostToDevice));
-    }
-}
 
 int main(){
     Datablock data(TM_SIMULATION);
@@ -111,11 +73,8 @@ int main(){
                                      data.coefs[1],
                                      data.coefs[2],
                                      data.coefs[3]);
+clear_memory_constants(&data);
 
-    cudaFree(data.constants[0]);
-    cudaFree(data.constants[1]);
-    cudaFree(data.constants[2]);
-    cudaFree(data.constants[3]);
 
 // set the sources
     HostSources host_sources;
@@ -125,7 +84,7 @@ int main(){
     host_sources.add_source(1, 0, SINUSOID_SOURCE, 0.1, 1);
 
     data.sources = &device_sources;
-    copy_sources(&host_sources, &device_sources);
+    copy_sources_device_to_host(&host_sources, &device_sources);
 
     bitmap.anim_and_exit( (void (*)(void *, int)) anim_gpu,
                             (void (*)(void *)) anim_exit);

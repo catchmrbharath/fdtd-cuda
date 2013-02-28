@@ -1,4 +1,3 @@
-#include "hostsources.h"
 #include "kernels.cuh"
 
 
@@ -27,7 +26,7 @@ __global__ void update_Hx(float *Hx, float *Ez, float *coef1, float* coef2){
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int offset = x + y * x_index_dim;
     int top = offset + x_index_dim;
-    if(y < y_index_dim -1)
+    if(y < y_index_dim - 1)
         Hx[offset] = coef1[offset] * Hx[offset]
                         - coef2[offset] * (Ez[top] - Ez[offset]);
     __syncthreads();
