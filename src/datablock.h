@@ -1,9 +1,11 @@
 #ifndef __DATABLOCK__
 #define __DATABLOCK__
+
 #include<vector>
 #include "structure.h"
 #include "devicesources.h"
 #include "hostsources.h"
+#include "cpu_anim.h"
 // This gives the best results
 #define BLOCKSIZE_X 256
 #define BLOCKSIZE_Y 1
@@ -26,8 +28,10 @@
 
 #define TM_PML_SIMULATION 1
 #define TM_PML_HXFIELD 0
-#define TM_PML_HXFIELD 1
-#define TM_PML_EZFIELD 2
+#define TM_PML_HYFIELD 1
+#define TM_PML_EZXFIELD 2
+#define TM_PML_EZYFIELD 3
+#define TM_PML_EZFIELD 4
 
 #define SIGMAINDEX_X 2
 #define SIGMA_STAR_INDEX_X 3
@@ -57,8 +61,8 @@ struct Datablock{
             coefs = (float **) malloc(sizeof(float *) * 4);
         }
 
-        if*type == TM_PML_SIMULATION){
-            fields = (float **) malloc(sizeof(float *) * 3);
+        if(type == TM_PML_SIMULATION){
+            fields = (float **) malloc(sizeof(float *) * 5);
             constants = (float **) malloc(sizeof(float *) * 6);
             coefs = (float **) malloc(sizeof(float *) * 8);
         }
@@ -67,6 +71,7 @@ struct Datablock{
     ~Datablock(){
         free(fields);
         free(constants);
+        free(coefs);
     }
 
 };

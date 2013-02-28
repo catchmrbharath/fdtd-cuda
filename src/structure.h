@@ -3,6 +3,7 @@
 #include "cuda.h"
 #include<vector>
 #include "hostsources.h"
+#include "stdio.h"
 
 struct Structure{
     float xdim;
