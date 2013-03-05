@@ -39,4 +39,30 @@ __global__ void float_to_color( uchar4 *optr,
 
 void copy_symbols(Structure *structure);
 void copy_sources(HostSources * host_sources, DeviceSources *device_sources);
+
+/* PML TM mode definitions */
+
+__global__ void pml_tm_get_coefs(float *mu,
+                              float *epsilon,
+                              float *sigma_x,
+                              float *sigma_y,
+                              float *sigma_star_x,
+                              float *sigma_star_y,
+                              float *coef1,
+                              float * coef2,
+                              float * coef3,
+                              float * coef4,
+                              float * coef5,
+                              float * coef6,
+                              float * coef7,
+                              float * coef8);
+
+__global__ void update_pml_ezx(float * Ezx, float *Hy,
+                                float * coef1, float *coef2);
+
+
+__global__ void update_pml_ezy(float * Ezy, float *Hx,
+                                float * coef1, float *coef2);
+
+__global__ void update_pml_ez(float * Ezx, float *Ezy, float *Ez);
 #endif

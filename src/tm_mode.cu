@@ -58,7 +58,7 @@ void anim_gpu_tm(Datablock *d, int ticks){
 }
 
 
-void clear_memory_constants(Datablock *d){
+void tm_clear_memory_constants(Datablock *d){
     cudaFree(d->constants[SIGMAINDEX]);
     cudaFree(d->constants[SIGMA_STAR_INDEX]);
     cudaFree(d->constants[EPSINDEX]);

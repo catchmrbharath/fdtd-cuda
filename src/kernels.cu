@@ -162,3 +162,95 @@ void copy_symbols(Structure *structure){
                     sizeof(float)));
 }
 
+
+/* PML TM mode functions start here */
+
+// Bad design. Too many arguments to the functions. Can't help it.
+// FIXME sometime
+__global__ void pml_tm_get_coefs(float *mu,
+                              float *epsilon,
+                              float *sigma_x,
+                              float *sigma_y,
+                              float *sigma_star_x,
+                              float *sigma_star_y,
+                              float *coef1,
+                              float * coef2,
+                              float * coef3,
+                              float * coef4,
+                              float * coef5,
+                              float * coef6,
+                              float * coef7,
+                              float * coef8)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * x_index_dim;
+    float mus = mu[offset];
+    float eps = epsilon[offset];
+    float sigma_x_value = sigma_x[offset];
+    float sigma_y_value = sigma_y[offset];
+    float sigma_star_x_value = sigma_star_x[offset];
+    float sigma_star_y_value = sigma_star_y[offset];
+    coef1[offset] = (2.0 * mus - sigma_star_x_value * deltat) /
+                    (2.0 * mus + sigma_star_x_value * deltat);
+
+    coef2[offset] = (2.0 * deltat) / ((2 * mus + sigma_star_x_value *deltat)
+                    * delta);
+
+    coef3[offset] = (2.0 * mus - sigma_star_y_value * deltat) /
+                    (2.0 * mus + sigma_star_y_value * deltat);
+
+    coef4[offset] = (2 * deltat) / ( (2 * mus +
+                sigma_star_y_value *deltat) * delta);
+
+    coef5[offset] = (2.0 * eps - sigma_x_value * deltat) /
+                    (2.0 * eps + sigma_x_value * deltat);
+
+    coef6[offset] = (2.0 * deltat) /
+                    ((2 * eps + sigma_x_value * deltat) * delta);
+
+    coef7[offset] = (2.0 * eps - sigma_y_value * deltat) /
+                    (2.0 * eps + sigma_y_value * deltat);
+
+    coef8[offset] = (2.0 * deltat) /
+                    ((2 * eps + sigma_y_value * deltat) * delta);
+}
+
+__global__ void update_pml_ezx(float * Ezx, float *Hy,
+                                float * coef1, float *coef2){
+
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * x_index_dim;
+    int left = offset - 1;
+
+    if (x > 0 && y > 0 && x<x_index_dim - 1 && y < y_index_dim - 1){
+        Ezx[offset] = coef1[offset] * Ezx[offset] +
+                      coef2[offset] * (Hy[offset] - Hy[left]);
+    }
+    __syncthreads();
+}
+
+__global__ void update_pml_ezy(float * Ezy, float *Hx,
+                                float * coef1, float *coef2){
+
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * x_index_dim;
+    int bottom = offset - x_index_dim;
+
+    if (x > 0 && y > 0 && x<x_index_dim - 1 && y < y_index_dim - 1){
+        Ezy[offset] = coef1[offset] * Ezy[offset] -
+                      coef2[offset] * (Hx[offset] - Hx[bottom]);
+    }
+    __syncthreads();
+}
+
+__global__ void update_pml_ez(float * Ezx, float *Ezy, float *Ez){
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * x_index_dim;
+    Ez[offset] = Ezx[offset] + Ezy[offset];
+    __syncthreads();
+}
+
