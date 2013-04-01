@@ -48,7 +48,7 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
                             float *coef2){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = x + y * x_index_dim;
 
     int left = offset - 1;
     int bottom = offset - x_index_dim;
@@ -74,7 +74,7 @@ __global__ void tm_getcoeff(float *mu,
                                 float * coef4){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = x + y * x_index_dim;
     float mus = mu[offset];
     float sigmamstar = sigma_star[offset];
     float sigmam = sigma[offset];
@@ -108,7 +108,7 @@ __global__ void float_to_color( unsigned char *optr,
     // map from threadIdx/BlockIdx to pixel position
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = x + y * x_index_dim;
 
     float l = outSrc[offset];
     float s = 1;
