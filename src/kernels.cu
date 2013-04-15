@@ -254,3 +254,95 @@ __global__ void update_pml_ez(float * Ezx, float *Ezy, float *Ez){
     __syncthreads();
 }
 
+__global__ void make_copy(float * E_old, float * E_new){
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * x_index_dim;
+    E_old[offset] = E_new[offset];
+    __syncthreads();
+}
+
+// FIXME Need better names for coef1. Is confusing.
+__global__ void update_drude_ez(float *Ez,
+                                float *Hx,
+                                float * Hy,
+                                float *Jz,
+                                float *coef1,
+                                float *coef2,
+                                float *coef3){
+
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * x_index_dim;
+    int left = offset - 1;
+    int bottom = offset - x_index_dim;
+
+    if (x > 0 && y > 0 && x < x_index_dim - 1 && y < y_index_dim - 1){
+        Ez[offset] = coef1[offset] * Ez[offset] +
+                    coef2[offset] * ((Hy[offset] - Hy[left]) -
+                                    (Hx[offset] - Hx[bottom])) -
+                    coef3[offset] * Jz[offset];
+    }
+    __syncthreads();
+}
+
+__global__ void update_drude_jz(float *Jz,
+                                float *Eznew,
+                                float *Ezold,
+                                float *coefa,
+                                float *coefb
+                                ){
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * x_index_dim;
+    Jz[offset] = coefa[offset] * Jz[offset] + 
+                 coefb[offset] * (Eznew[offset] - Ezold[offset]);
+
+}
+
+
+/* kernels for gain materials */
+
+__global__ void drude_get_coefs(float *mu,
+                                float * epsilon,
+                                float *sigma,
+                                float * sigma_star,
+                                float *gamma,
+                                float *omegap,
+                                float * coef1,
+                                float * coef2,
+                                float * coef3,
+                                float * coef4,
+                                float * coef5,
+                                float * coef6){
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * x_index_dim;
+    float mus = mu[offset];
+    float sigmamstar = sigma_star[offset];
+    float sigmam = sigma[offset];
+    float eps = epsilon[offset];
+    float gamma_local = gamma[offset];
+    float omegap_local = omegap[offset];
+
+
+    float kp = (1 - gamma_local * 0.5 * deltat) /
+                (1 + gamma_local * 0.5 * deltat);
+
+    float betap = (omegap_local * omegap_local * eps * deltat * 0.5) /
+                  (1 + gamma_local * 0.5 * deltat);
+
+
+    coef1[offset] = (2.0 * mus - sigmamstar * deltat) /
+                        (2.0 * mus + sigmamstar * deltat);
+    coef2[offset] = (2 * deltat) / ((2 * mus + sigmamstar * deltat) * delta);
+
+    coef3[offset] = (2 * eps - deltat * (betap + sigmam)) /
+                    (2 * eps + deltat * (betap + sigmam));
+
+    coef4[offset] = (2.0 * deltat) / (2 * eps + deltat * (betap + sigmam));
+    coef5[offset] = 0.5 * (1 + kp);
+    coef6[offset] = betap / deltat;
+
+    __syncthreads();
+}

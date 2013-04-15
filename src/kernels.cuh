@@ -65,4 +65,36 @@ __global__ void update_pml_ezy(float * Ezy, float *Hx,
                                 float * coef1, float *coef2);
 
 __global__ void update_pml_ez(float * Ezx, float *Ezy, float *Ez);
+
+__global__ void update_drude_ez(float *Ez,
+                                float *Hx,
+                                float * Hy,
+                                float *Jz,
+                                float *coef1,
+                                float *coef2,
+                                float *coef3);
+
+__global__ void drude_get_coefs(float *mu,
+                                float * epsilon,
+                                float *sigma,
+                                float * sigma_star,
+                                float *gamma,
+                                float *omegap,
+                                float * coef1,
+                                float * coef2,
+                                float * coef3,
+                                float * coef4,
+                                float * coef5,
+                                float * coef6);
+
+__global__ void update_drude_jz(float *Jz,
+                                float *Eznew,
+                                float *Ezold,
+                                float *coefa,
+                                float *coefb
+                                );
+
+__global__ void make_copy(float * E_old, float * E_new);
+
 #endif
+

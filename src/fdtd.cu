@@ -12,12 +12,16 @@
 #include<algorithm>
 #include "tm_mode.h"
 #include "pml_mode.h"
+#include "drude_mode.h"
 
 void anim_gpu(Datablock *d, int ticks){
     if(d->simulationType == TM_SIMULATION)
         anim_gpu_tm(d, ticks);
     else if(d->simulationType == TM_PML_SIMULATION)
         anim_gpu_pml_tm(d, ticks);
+    else if(d->simulationType == DRUDE_SIMULATION){
+        anim_gpu_drude(d, ticks);
+    }
 }
 
 void anim_exit(Datablock *d){
@@ -25,6 +29,8 @@ void anim_exit(Datablock *d){
         clear_memory_TM_simulation(d);
     else if(d->simulationType == TM_PML_SIMULATION)
         clear_memory_TM_PML_simulation(d);
+    else if(d->simulationType == DRUDE_SIMULATION)
+        clear_memory_drude_simulation(d);
 
 }
 
@@ -33,6 +39,8 @@ void allocate_memory(Datablock *data, Structure structure){
         allocateTMMemory(data, structure);
     else if(data->simulationType == TM_PML_SIMULATION)
         tm_pml_allocate_memory(data, structure);
+    else if(data->simulationType == DRUDE_SIMULATION)
+        allocate_drude_memory(data, structure);
 }
 
 void initializeArrays(Datablock *data, Structure structure){
@@ -40,6 +48,8 @@ void initializeArrays(Datablock *data, Structure structure){
         initialize_TM_arrays(data, structure);
     else if(data->simulationType == TM_PML_SIMULATION)
         tm_pml_initialize_arrays(data, structure);
+    else if(data->simulationType == DRUDE_SIMULATION)
+        initialize_drude_arrays(data, structure);
 }
 
 void clear_memory_constants(Datablock *data){
@@ -47,6 +57,8 @@ void clear_memory_constants(Datablock *data){
         tm_clear_memory_constants(data);
     else if(data->simulationType == TM_PML_SIMULATION)
         tm_pml_clear_memory_constants(data);
+    else if(data->simulationType == DRUDE_SIMULATION)
+        clear_memory_drude_simulation(data);
 
 }
 
@@ -83,20 +95,19 @@ int main(){
                 (structure.y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
     dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
-    pml_tm_get_coefs<<<blocks, threads>>>(data.constants[MUINDEX],
+    drude_get_coefs<<<blocks, threads>>>(data.constants[MUINDEX],
                                      data.constants[EPSINDEX],
-                                     data.constants[SIGMAINDEX_X],
-                                     data.constants[SIGMAINDEX_Y],
-                                     data.constants[SIGMA_STAR_INDEX_X],
-                                     data.constants[SIGMA_STAR_INDEX_Y],
+                                     data.constants[SIGMAINDEX],
+                                     data.constants[SIGMA_STAR_INDEX],
+                                     data.constants[GAMMA_INDEX],
+                                     data.constants[OMEGAP_INDEX],
                                      data.coefs[0],
                                      data.coefs[1],
                                      data.coefs[2],
                                      data.coefs[3],
                                      data.coefs[4],
-                                     data.coefs[5],
-                                     data.coefs[6],
-                                     data.coefs[7]);
+                                     data.coefs[5]
+                                     );
 clear_memory_constants(&data);
 
 
