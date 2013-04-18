@@ -17,28 +17,8 @@ void anim_gpu_drude(Datablock *d, int ticks){
     printf("time ticks = %ld", time_ticks);
     printf("time ticks = %ld", time_ticks);
 
-    for(int i=0;i<100;i++){
+    for(int i=0;i<2;i++){
         time_ticks += 1;
-        copy_sources<<<source_blocks, source_threads>>>(
-                d->fields[DRUDE_EZFIELD],
-                d->sources->x_source_position,
-                d->sources->y_source_position,
-                d->sources->source_type,
-                d->sources->mean,
-                d->sources->variance,
-                d->sources->size,
-                time_ticks);
-
-        update_Hx<<<blocks, threads>>>(d->fields[DRUDE_HXFIELD],
-                                        d->fields[DRUDE_EZFIELD],
-                                        d->coefs[0],
-                                        d->coefs[1]);
-
-        update_Hy<<<blocks, threads>>>(d->fields[DRUDE_HYFIELD],
-                                        d->fields[DRUDE_EZFIELD],
-                                        d->coefs[0],
-                                        d->coefs[1]);
-
         make_copy<<<blocks, threads>>>(d->fields[DRUDE_EZOLD],
                                        d->fields[DRUDE_EZFIELD]);
 
@@ -49,11 +29,32 @@ void anim_gpu_drude(Datablock *d, int ticks){
                                              d->coefs[2],
                                              d->coefs[3],
                                              d->coefs[4]);
+
+        copy_sources<<<source_blocks, source_threads>>>(
+                d->fields[DRUDE_EZFIELD],
+                d->sources->x_source_position,
+                d->sources->y_source_position,
+                d->sources->source_type,
+                d->sources->mean,
+                d->sources->variance,
+                d->sources->size,
+                time_ticks);
+
         update_drude_jz<<<blocks, threads>>>(d->fields[DRUDE_JFIELD],
                                              d->fields[DRUDE_EZFIELD],
                                              d->fields[DRUDE_EZOLD],
-                                             d->coefs[4],
-                                             d->coefs[5]);
+                                             d->coefs[5],
+                                             d->coefs[6]);
+
+        update_Hx<<<blocks, threads>>>(d->fields[DRUDE_HXFIELD],
+                                        d->fields[DRUDE_EZFIELD],
+                                        d->coefs[0],
+                                        d->coefs[1]);
+
+        update_Hy<<<blocks, threads>>>(d->fields[DRUDE_HYFIELD],
+                                        d->fields[DRUDE_EZFIELD],
+                                        d->coefs[0],
+                                        d->coefs[1]);
     }
     float_to_color<<<blocks, threads>>> (d->output_bitmap,
             d->fields[DRUDE_EZFIELD]);
@@ -63,7 +64,7 @@ void anim_gpu_drude(Datablock *d, int ticks){
 
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
-    float elapsedTime;
+    float elapsedTime = 1;
     checkCudaErrors(cudaEventElapsedTime(&elapsedTime, d->start, d->stop));
     d->totalTime +=elapsedTime;
     d->frames +=1;
@@ -159,7 +160,7 @@ void initialize_drude_arrays(Datablock *data, Structure structure){
     cudaMemcpy(data->constants[MUINDEX],temp,structure.size(),
                 cudaMemcpyHostToDevice);
 
-    std::fill_n(temp, size, EPSILON * 20);
+    std::fill_n(temp, size, EPSILON);
     cudaMemcpy(data->constants[EPSINDEX],temp,structure.size(),
                 cudaMemcpyHostToDevice);
 
@@ -171,11 +172,11 @@ void initialize_drude_arrays(Datablock *data, Structure structure){
     cudaMemcpy(data->constants[SIGMA_STAR_INDEX],temp,structure.size(),
                 cudaMemcpyHostToDevice);
 
-    std::fill_n(temp, size, 0.0);
+    std::fill_n(temp, size, 2.0 * PI * 2e15);
     cudaMemcpy(data->constants[OMEGAP_INDEX],temp,structure.size(),
                 cudaMemcpyHostToDevice);
 
-    std::fill_n(temp, size, 0.0);
+    std::fill_n(temp, size, 57e12);
     cudaMemcpy(data->constants[GAMMA_INDEX],temp,structure.size(),
                 cudaMemcpyHostToDevice);
 

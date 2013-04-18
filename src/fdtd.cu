@@ -19,9 +19,8 @@ void anim_gpu(Datablock *d, int ticks){
         anim_gpu_tm(d, ticks);
     else if(d->simulationType == TM_PML_SIMULATION)
         anim_gpu_pml_tm(d, ticks);
-    else if(d->simulationType == DRUDE_SIMULATION){
+    else if(d->simulationType == DRUDE_SIMULATION)
         anim_gpu_drude(d, ticks);
-    }
 }
 
 void anim_exit(Datablock *d){
@@ -58,19 +57,69 @@ void clear_memory_constants(Datablock *data){
     else if(data->simulationType == TM_PML_SIMULATION)
         tm_pml_clear_memory_constants(data);
     else if(data->simulationType == DRUDE_SIMULATION)
-        clear_memory_drude_simulation(data);
+        drude_clear_memory_constants(data);
 
 }
 
 
+void calculate_coefficients(Datablock *data, Structure structure){
+    dim3 blocks((structure.x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
+                (structure.y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
+    dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
+    if(data->simulationType == TM_SIMULATION)
+        tm_getcoeff<<<blocks, threads>>>(data->constants[MUINDEX],
+                                         data->constants[EPSINDEX],
+                                         data->constants[SIGMAINDEX],
+                                         data->constants[SIGMA_STAR_INDEX],
+                                         data->coefs[0],
+                                         data->coefs[1],
+                                         data->coefs[2],
+                                         data->coefs[3]
+                                         );
+
+    else if(data->simulationType == TM_PML_SIMULATION)
+        pml_tm_get_coefs<<<blocks, threads>>>(data->constants[MUINDEX],
+                                              data->constants[EPSINDEX],
+                                              data->constants[SIGMAINDEX_X],
+                                              data->constants[SIGMAINDEX_Y],
+                                              data->constants[SIGMA_STAR_INDEX_X],
+                                              data->constants[SIGMA_STAR_INDEX_Y],
+                                              data->coefs[0],
+                                              data->coefs[1],
+                                              data->coefs[2],
+                                              data->coefs[3],
+                                              data->coefs[4],
+                                              data->coefs[5],
+                                              data->coefs[6],
+                                              data->coefs[7]);
+
+    else if(data->simulationType == DRUDE_SIMULATION)
+        drude_get_coefs<<<blocks, threads>>>(data->constants[MUINDEX],
+                                         data->constants[EPSINDEX],
+                                         data->constants[SIGMAINDEX],
+                                         data->constants[SIGMA_STAR_INDEX],
+                                         data->constants[GAMMA_INDEX],
+                                         data->constants[OMEGAP_INDEX],
+                                         data->coefs[0],
+                                         data->coefs[1],
+                                         data->coefs[2],
+                                         data->coefs[3],
+                                         data->coefs[4],
+                                         data->coefs[5],
+                                         data->coefs[6]
+                                         );
+
+}
+
 int main(){
-    Datablock data(TM_PML_SIMULATION);
-    float dt= 0.5;
+    Datablock data(DRUDE_SIMULATION);
+    float dx= 1e-6 / 300.0;
 
 // FIXME: check the courant factor for the max epsilon.
 
     float courant = 0.5;
-    float dx =  (dt * LIGHTSPEED) / courant;
+    float dt =  courant * dx / LIGHTSPEED;
+    printf("dt = %f", dt);
     Structure structure(1024, 1024, dx, dt);
     copy_symbols(&structure);
 
@@ -90,31 +139,16 @@ int main(){
 
 
 //  get the coefficients
+    calculate_coefficients(&data, structure);
 
-    dim3 blocks((structure.x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
-                (structure.y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
-    dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
-    drude_get_coefs<<<blocks, threads>>>(data.constants[MUINDEX],
-                                     data.constants[EPSINDEX],
-                                     data.constants[SIGMAINDEX],
-                                     data.constants[SIGMA_STAR_INDEX],
-                                     data.constants[GAMMA_INDEX],
-                                     data.constants[OMEGAP_INDEX],
-                                     data.coefs[0],
-                                     data.coefs[1],
-                                     data.coefs[2],
-                                     data.coefs[3],
-                                     data.coefs[4],
-                                     data.coefs[5]
-                                     );
 clear_memory_constants(&data);
 
 
 // set the sources
     HostSources host_sources;
     DeviceSources device_sources;
-    host_sources.add_source(512, 512, SINUSOID_SOURCE, 0.05, 1);
+    host_sources.add_source(512, 512, SINUSOID_SOURCE, 2 * PI * 5e14, 1);
 
     data.sources = &device_sources;
     copy_sources_device_to_host(&host_sources, &device_sources);

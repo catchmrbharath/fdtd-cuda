@@ -79,7 +79,7 @@ struct Datablock{
         else if(type == DRUDE_SIMULATION){
             fields = (float **) malloc(sizeof(float *) * 5);
             constants = (float **) malloc(sizeof(float *) * 6);
-            coefs = (float **) malloc(sizeof(float *) * 6);
+            coefs = (float **) malloc(sizeof(float *) * 7);
         }
     }
 

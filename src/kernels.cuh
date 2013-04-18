@@ -85,7 +85,8 @@ __global__ void drude_get_coefs(float *mu,
                                 float * coef3,
                                 float * coef4,
                                 float * coef5,
-                                float * coef6);
+                                float * coef6,
+                                float * coef7);
 
 __global__ void update_drude_jz(float *Jz,
                                 float *Eznew,
