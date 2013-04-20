@@ -1,10 +1,14 @@
 #include "drude_mode.h"
 #include "constants.h"
+/**
+  Main entry point for the fdtd calculations
+
+  @param d The datablock structure
+  @param ticks Represents the number of times the function has run.
+*/
 void anim_gpu_drude(Datablock *d, int ticks){
     assert(d != NULL);
-    printf("reached here\n");
     float err = cudaEventRecord(d->start, 0);
-    printf("reached here\n");
 
     dim3 blocks((d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
                 (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
@@ -14,8 +18,6 @@ void anim_gpu_drude(Datablock *d, int ticks){
     dim3 source_blocks((d->sources->size + 63) / 64, 1);
     CPUAnimBitmap *bitmap = d->bitmap;
     static long time_ticks = 0;
-    printf("time ticks = %ld", time_ticks);
-    printf("time ticks = %ld", time_ticks);
 
     for(int i=0;i<2;i++){
         time_ticks += 1;
