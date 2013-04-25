@@ -1,8 +1,6 @@
 START_DEFAULTS
-x_index_dim = 1024
-y_index_dim = 1024
-x_dim = 20um
-y_dim = 20um
+x_dim = 1024
+y_dim = 1024
 dx = 0.05um
 dt = 1s
 default_epsilon = 1.0
@@ -12,6 +10,6 @@ default_sigma_star = 0
 END_DEFAULTS
 
 START_GEOMETRY
-RECTANGLE ABS LESS 0 0 1.5 1.5
-CIRCLE REL GREATER 5 4 3
+EPS LINE LESS 1 2 3
+MU CIRCLE GREATER 5 4 3
 END_GEOMETRY

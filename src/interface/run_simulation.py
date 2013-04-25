@@ -1,8 +1,8 @@
 from structure import *
 import re
+from geometry import *
 
 def parse_start_parameters(parameter_string):
-    print parameter_string
     regex = re.compile(r'(\w+)\s+=\s+(\w+)')
     parameter_list = re.findall(regex, parameter_string)
     units = {'um':1e-6,
@@ -26,9 +26,27 @@ def parse_start_parameters(parameter_string):
 def geometry_parser(geometry_parameters):
     """Parses the geometry as tokens. In the
     case of bad parsing, raises ValueError """
-
     tokens = geometry_parameters.split()
     tokens = [t.strip() for t in tokens]
+    geometry = []
+    while len(tokens):
+        if(tokens[1] == 'LINE'):
+            temp = Line(tokens[0], tokens[2], tokens[3], tokens[4], tokens[5])
+            geometry.append(temp)
+            tokens = tokens[6:]
+        elif(tokens[1] == 'CIRCLE'):
+            temp = Circle(tokens[0], tokens[2], tokens[3], tokens[4], tokens[5])
+            geometry.append(temp)
+            tokens = tokens[6:]
+        elif(tokens[1] == 'Ellipse'):
+            temp = Ellipse(tokens[0], tokens[2], tokens[3], tokens[4], tokens[5], tokens[6])
+            geometry.append(temp)
+            tokens = tokens[7:]
+        else:
+            raise ValueError("Geometry could not be parsed")
+    return geometry
+
+
 
 
 def source_parser(source_parameters): pass
@@ -49,7 +67,9 @@ def parse_file(filename):
         #Match all the default settings
         regex = re.compile(r'START_DEFAULTS(.*?)END_DEFAULTS')
         start_parameters = regex.search(parameters).group(1)
-        parse_start_parameters(start_parameters)
+        structure.parameters = parse_start_parameters(start_parameters)
+        structure.create_dimensions()
+        structure.create_arrays()
 
         #Match the geometry
         regex = re.compile(r'START_GEOMETRY(.*?)END_GEOMETRY')
@@ -63,4 +83,4 @@ def parse_file(filename):
         source_match = regex.search(parameters)
         if source_match:
             source_parameters = source_match.group(1)
-                source_parser(source_parameters)
+            source_parser(source_parameters)
