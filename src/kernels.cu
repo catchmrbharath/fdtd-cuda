@@ -160,6 +160,7 @@ void copy_symbols(Structure *structure){
                     sizeof(float)));
     checkCudaErrors(cudaMemcpyToSymbol(deltat, &(structure->dt),
                     sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(pitch, &(structure->pitch), sizeof(size_t)));
 }
 
 
@@ -349,4 +350,13 @@ __global__ void drude_get_coefs(float *mu,
     coef7[offset] = betap;
 
     __syncthreads();
+}
+
+
+__global__ void initialize_array(float * field, float value){
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * pitch;
+    field[offset] = value;
+
 }

@@ -16,6 +16,7 @@ struct Structure{
     long total_ticks;
     long present_ticks;
     char * name;
+    size_t pitch;
     HostSources * sources;
 
     Structure(int xindexdim, int yindexdim, float dxin, float dtin){

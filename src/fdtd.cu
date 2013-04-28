@@ -33,13 +33,15 @@ void anim_exit(Datablock *d){
 
 }
 
-void allocate_memory(Datablock *data, Structure structure){
+// FIXME: Fix all uses of pitch here
+size_t allocate_memory(Datablock *data, Structure structure){
     if(data->simulationType == TM_SIMULATION)
-        allocateTMMemory(data, structure);
+        return allocateTMMemory(data, structure);
     else if(data->simulationType == TM_PML_SIMULATION)
         tm_pml_allocate_memory(data, structure);
     else if(data->simulationType == DRUDE_SIMULATION)
         allocate_drude_memory(data, structure);
+    return 0;
 }
 
 void initializeArrays(Datablock *data, Structure structure){
@@ -112,7 +114,7 @@ void calculate_coefficients(Datablock *data, Structure structure){
 }
 
 int main(){
-    Datablock data(DRUDE_SIMULATION);
+    Datablock data(TM_SIMULATION);
     float dx= 1e-6 / 300.0;
 
 // FIXME: check the courant factor for the max epsilon.
@@ -121,7 +123,6 @@ int main(){
     float dt =  courant * dx / LIGHTSPEED;
     printf("dt = %f", dt);
     Structure structure(1024, 1024, dx, dt);
-    copy_symbols(&structure);
 
 
     CPUAnimBitmap bitmap(structure.x_index_dim, structure.x_index_dim,
@@ -134,7 +135,11 @@ int main(){
     checkCudaErrors(cudaEventCreate(&data.start, 1) );
     checkCudaErrors(cudaEventCreate(&data.stop, 1) );
 
-    allocate_memory(&data, structure);
+    size_t pitch;
+    pitch = allocate_memory(&data, structure);
+    structure.pitch = pitch;
+    copy_symbols(&structure);
+    printf("pitch = %d", pitch);
     initializeArrays(&data, structure);
 
 

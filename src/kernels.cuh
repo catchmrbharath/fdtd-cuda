@@ -14,6 +14,7 @@ __device__ __constant__ int x_index_dim;
 __device__ __constant__ int y_index_dim;
 __device__ __constant__ float delta;
 __device__ __constant__ float deltat;
+__device__ __constant__ size_t pitch;
 
 __global__ void copy_sources(float * target, int * x_position, int *y_position,
                             int * type, float * mean, float * variance,
@@ -96,6 +97,7 @@ __global__ void update_drude_jz(float *Jz,
                                 );
 
 __global__ void make_copy(float * E_old, float * E_new);
+__global__ void initialize_array(float * field, float value);
 
 #endif
 

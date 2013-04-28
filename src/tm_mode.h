@@ -10,7 +10,7 @@
 
 extern "C" void anim_gpu_tm(Datablock *d, int ticks);
 extern "C" void clear_memory_TM_simulation(Datablock *d);
-extern "C" void allocateTMMemory(Datablock *d, Structure structure);
+extern "C" size_t allocateTMMemory(Datablock *d, Structure structure);
 #include "hostsources.h"
 extern "C" void initialize_TM_arrays(Datablock *data, Structure structure);
 extern "C" void tm_clear_memory_constants(Datablock *d);
