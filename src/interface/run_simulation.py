@@ -1,6 +1,7 @@
 from structure import *
 import re
 from geometry import *
+from matplotlib.pyplot import imshow, show
 
 def parse_start_parameters(parameter_string):
     regex = re.compile(r'(\w+)\s+=\s+(\w+)')
@@ -30,19 +31,20 @@ def geometry_parser(geometry_parameters):
     tokens = [t.strip() for t in tokens]
     geometry = []
     while len(tokens):
-        if(tokens[1] == 'LINE'):
-            temp = Line(tokens[0], tokens[2], tokens[3], tokens[4], tokens[5])
-            geometry.append(temp)
-            tokens = tokens[6:]
-        elif(tokens[1] == 'CIRCLE'):
-            temp = Circle(tokens[0], tokens[2], tokens[3], tokens[4], tokens[5])
-            geometry.append(temp)
-            tokens = tokens[6:]
-        elif(tokens[1] == 'Ellipse'):
-            temp = Ellipse(tokens[0], tokens[2], tokens[3], tokens[4], tokens[5], tokens[6])
+        if(tokens[2] == 'LINE'):
+            temp = Line(tokens[1], tokens[0], tokens[3], tokens[4], tokens[5], tokens[6])
             geometry.append(temp)
             tokens = tokens[7:]
+        elif(tokens[2] == 'CIRCLE'):
+            temp = Circle(tokens[1], tokens[0], tokens[3], tokens[4], tokens[5], tokens[6])
+            geometry.append(temp)
+            tokens = tokens[7:]
+        elif(tokens[2] == 'Ellipse'):
+            temp = Ellipse(tokens[1], tokens[0], tokens[3], tokens[4], tokens[5], tokens[6], tokens[7])
+            geometry.append(temp)
+            tokens = tokens[8:]
         else:
+            print tokens
             raise ValueError("Geometry could not be parsed")
     return geometry
 
@@ -74,9 +76,24 @@ def parse_file(filename):
         #Match the geometry
         regex = re.compile(r'START_GEOMETRY(.*?)END_GEOMETRY')
         geometry_match = regex.search(parameters)
+        geometry = []
         if geometry_match:
             geometry_parameters = geometry_match.group(1)
-            geometry_parser(geometry_parameters)
+            geometry = geometry_parser(geometry_parameters)
+
+        for geo in geometry:
+            if geo.array_type == 'MU':
+                geo.apply(structure.mu_array)
+            elif geo.array_type == 'EPS':
+                geo.apply(structure.epsilon_array)
+            elif geo.array_type == 'SIGMA':
+                geo.apply(structure.sigma_array)
+            elif geo.array_type == 'SIGMA_STAR':
+                geo.apply(structure.sigma_star_array)
+        imshow(structure.mu_array)
+        show()
+        imshow(structure.epsilon_array)
+        show()
 
         #Match the sources
         regex = re.compile(r'START_SOURCES(.*?)END_SOURCES')
