@@ -136,29 +136,29 @@ void initialize_TM_arrays(Datablock *data, Structure structure){
     std::fill_n(temp, size, MU);
     checkCudaErrors(cudaMemcpy2D(data->constants[MUINDEX], structure.pitch,
                 temp, sizeof(float) * structure.x_index_dim,
- sizeof(float) * structure.x_index_dim,
-                sizeof(float) * structure.y_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
                 cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, EPSILON * 20);
     checkCudaErrors(cudaMemcpy2D(data->constants[EPSINDEX], structure.pitch,
-                temp,sizeof(float) * structure.x_index_dim,
-  sizeof(float) * structure.x_index_dim,
-                sizeof(float) * structure.y_index_dim,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
                 cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, 0.0);
     checkCudaErrors(cudaMemcpy2D(data->constants[SIGMAINDEX], structure.pitch,
                 temp, sizeof(float) * structure.x_index_dim,
-  sizeof(float) * structure.x_index_dim,
-               sizeof(float) *  structure.y_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
                 cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, 0.0);
     checkCudaErrors(cudaMemcpy2D(data->constants[SIGMA_STAR_INDEX], structure.pitch,
                 temp, sizeof(float) * structure.x_index_dim,
- sizeof(float) *  structure.x_index_dim,
-                sizeof(float) * structure.y_index_dim,
+                sizeof(float) *  structure.x_index_dim,
+                structure.y_index_dim,
                 cudaMemcpyHostToDevice));
 
     // FIXME : For 2d pitch this has to be modified.
