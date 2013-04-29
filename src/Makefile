@@ -10,7 +10,7 @@ $(FINAL) : $(OBJECTS)
 	nvcc -g -G $(LDFLAGS)  $(OBJECTS) -o  $(FINAL)
 
 .cu.o:
-	$(CC) -c $<
+	$(CC) -g -G -c $<
 
 .SUFFIXES: .cu
 #drude_mode.o: drude_mode.cu
