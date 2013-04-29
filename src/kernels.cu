@@ -9,23 +9,25 @@ __global__ void copy_sources(float * target, int * x_position, int *y_position,
     if(i<sources_size){
         int x = x_position[i];
         int y = y_position[i];
+        int offset = x + y * pitch / sizeof(float);
         if (type[i] == CONSTANT_SOURCE )
-            target[x + y * x_index_dim] = variance[i];
+            target[offset] = variance[i];
         else if (type[i] == SINUSOID_SOURCE){
             float temp = sinf(mean[i] * time_ticks * deltat);
             float temp2 = variance[i];
-            target[x + y * x_index_dim] = temp2 * temp;
+            target[offset] = temp2 * temp;
         }
         else
-            target[x + y * x_index_dim] = 1;
+            target[offset] = 1;
     }
     __syncthreads();
 }
 __global__ void update_Hx(float *Hx, float *Ez, float *coef1, float* coef2){
+// FIXME : pitch here is in bytes.
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
-    int top = offset + x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
+    int top = offset + pitch / sizeof(float);
     if(y < y_index_dim - 1)
         Hx[offset] = coef1[offset] * Hx[offset]
                         - coef2[offset] * (Ez[top] - Ez[offset]);
@@ -36,7 +38,7 @@ __global__ void update_Hy(float *Hy, float *Ez, float * coef1, float * coef2){
 
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
     int right = offset + 1;
     if(x < x_index_dim -1)
         Hy[offset] = coef1[offset] * Hy[offset] + 
@@ -48,10 +50,10 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
                             float *coef2){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = x + y * pitch / sizeof(float);
 
     int left = offset - 1;
-    int bottom = offset - x_index_dim;
+    int bottom = offset - pitch / sizeof(float);
 
     if (x > 0 && y > 0 && x<x_index_dim - 1 && y < y_index_dim - 1){
         Ez[offset] = coef1[offset] * Ez[offset] +
@@ -74,7 +76,7 @@ __global__ void tm_getcoeff(float *mu,
                                 float * coef4){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = x + y * pitch / sizeof(float);
     float mus = mu[offset];
     float sigmamstar = sigma_star[offset];
     float sigmam = sigma[offset];
@@ -356,7 +358,7 @@ __global__ void drude_get_coefs(float *mu,
 __global__ void initialize_array(float * field, float value){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * pitch;
+    int offset = x + y * pitch / sizeof(float);
     field[offset] = value;
 
 }
