@@ -53,8 +53,14 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
     float_to_color<<<blocks, threads>>> (d->output_bitmap,
                                         d->fields[TM_PML_EZFIELD]);
 
-    checkCudaErrors(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap,
-                        bitmap->image_size(), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
+                                sizeof(float) * d->structure->x_index_dim,
+                                d->output_bitmap,
+                                d->structure->pitch,
+                                sizeof(float) * d->structure->x_index_dim,
+                                d->structure->y_index_dim,
+                                cudaMemcpyDeviceToHost));
+
 
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
@@ -101,24 +107,31 @@ void clear_memory_TM_PML_simulation(Datablock *d){
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
 
-void tm_pml_allocate_memory(Datablock *data, Structure structure){
+size_t tm_pml_allocate_memory(Datablock *data, Structure structure){
+    size_t pitch;
+    checkCudaErrors(cudaMallocPitch( (void **) &data->output_bitmap,
+                    &pitch, sizeof(float) * structure.x_index_dim,
+                    sizeof(float) * structure.y_index_dim ));
 
-    checkCudaErrors(cudaMalloc( (void **) &data->output_bitmap,
-                    structure.size()));
     for(int i = 0;i < 5;i++){
-    checkCudaErrors(cudaMalloc( (void **) &data->fields[i],
-                    structure.size() ));
+        checkCudaErrors(cudaMallocPitch( (void **) &data->fields[i],
+                    &pitch, sizeof(float) * structure.x_index_dim,
+                    sizeof(float) * structure.y_index_dim ));
     }
 
     for(int i = 0; i < 6; i++){
-    checkCudaErrors(cudaMalloc( (void **) &data->constants[i],
-                    structure.size() ));
+        checkCudaErrors(cudaMallocPitch( (void **) &data->constants[i],
+                    &pitch, sizeof(float) * structure.x_index_dim,
+                    sizeof(float) * structure.y_index_dim ));
     }
 
     for(int i = 0;i < 8; i++){
-    checkCudaErrors(cudaMalloc( (void **) &data->coefs[i],
-                    structure.size() ));
+        checkCudaErrors(cudaMallocPitch( (void **) &data->coefs[i],
+                    &pitch, sizeof(float) * structure.x_index_dim,
+                    sizeof(float) * structure.y_index_dim ));
     }
+
+    return pitch;
 
 }
 
@@ -129,44 +142,57 @@ void tm_pml_initialize_arrays(Datablock *data, Structure structure){
     printf("%ld\n", structure.y_index_dim);
 
     // FIXME: Temporary fix for populating values.
-
     float * temp = (float *) malloc(structure.size());
     std::fill_n(temp, size, MU);
-    cudaMemcpy(data->constants[MUINDEX],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[MUINDEX], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, EPSILON * 20);
-    cudaMemcpy(data->constants[EPSINDEX],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[EPSINDEX], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, 0.0);
-    cudaMemcpy(data->constants[SIGMAINDEX_X],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMAINDEX_X], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, 0.0);
-    cudaMemcpy(data->constants[SIGMAINDEX_Y],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMAINDEX_Y], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) *  structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
+
 
     std::fill_n(temp, size, 0.0);
-    cudaMemcpy(data->constants[SIGMA_STAR_INDEX_X],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMA_STAR_INDEX_X], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, 0.0);
-    cudaMemcpy(data->constants[SIGMA_STAR_INDEX_Y],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMA_STAR_INDEX_Y], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) *  structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
 
-    thrust::device_ptr<float> hx_field_ptr(data->fields[TM_PML_HXFIELD]);
-    thrust::fill(hx_field_ptr, hx_field_ptr + size, 0);
+    dim3 blocks((data->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
+                (data->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
+    dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
-    thrust::device_ptr<float> hy_field_ptr(data->fields[TM_PML_HYFIELD]);
-    thrust::fill(hy_field_ptr, hy_field_ptr + size, 0);
-
-    thrust::device_ptr<float> ez_field_ptr(data->fields[TM_PML_EZFIELD]);
-    thrust::fill(ez_field_ptr, ez_field_ptr + size, 0);
-
-    thrust::device_ptr<float> ezx_field_ptr(data->fields[TM_PML_EZXFIELD]);
-    thrust::fill(ezx_field_ptr, ezx_field_ptr + size, 0);
-
-    thrust::device_ptr<float> ezy_field_ptr(data->fields[TM_PML_EZYFIELD]);
-    thrust::fill(ezy_field_ptr, ezy_field_ptr + size, 0);
+    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_HXFIELD], 0);
+    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_HYFIELD], 0);
+    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_EZFIELD], 0);
+    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_EZXFIELD], 0);
+    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_EZYFIELD], 0);
 }

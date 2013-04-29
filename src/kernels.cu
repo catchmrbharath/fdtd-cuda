@@ -187,7 +187,7 @@ __global__ void pml_tm_get_coefs(float *mu,
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
     float mus = mu[offset];
     float eps = epsilon[offset];
     float sigma_x_value = sigma_x[offset];
@@ -224,7 +224,7 @@ __global__ void update_pml_ezx(float * Ezx, float *Hy,
 
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
     int left = offset - 1;
 
     if (x > 0 && y > 0 && x<x_index_dim - 1 && y < y_index_dim - 1){
@@ -239,8 +239,8 @@ __global__ void update_pml_ezy(float * Ezy, float *Hx,
 
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
-    int bottom = offset - x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
+    int bottom = offset - pitch / sizeof(float);
 
     if (x > 0 && y > 0 && x<x_index_dim - 1 && y < y_index_dim - 1){
         Ezy[offset] = coef1[offset] * Ezy[offset] -
@@ -252,7 +252,7 @@ __global__ void update_pml_ezy(float * Ezy, float *Hx,
 __global__ void update_pml_ez(float * Ezx, float *Ezy, float *Ez){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
     Ez[offset] = Ezx[offset] + Ezy[offset];
     __syncthreads();
 }
@@ -260,7 +260,7 @@ __global__ void update_pml_ez(float * Ezx, float *Ezy, float *Ez){
 __global__ void make_copy(float * E_old, float * E_new){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
     E_old[offset] = E_new[offset];
     __syncthreads();
 }
