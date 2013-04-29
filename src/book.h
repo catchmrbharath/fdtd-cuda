@@ -107,7 +107,7 @@ __global__ void float_to_color( uchar4 *optr,
     // map from threadIdx/BlockIdx to pixel position
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = x + y * pitch / sizeof(float);
 
     float l = outSrc[offset];
     float s = 1;

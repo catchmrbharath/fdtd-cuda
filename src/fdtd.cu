@@ -131,7 +131,6 @@ int main(){
     data.bitmap = &bitmap;
     data.totalTime = 0;
     data.frames = 0;
-    data.structure = &structure;
     checkCudaErrors(cudaEventCreate(&data.start, 1) );
     checkCudaErrors(cudaEventCreate(&data.stop, 1) );
 
@@ -140,6 +139,7 @@ int main(){
     structure.pitch = pitch;
     copy_symbols(&structure);
     printf("pitch = %d", pitch);
+    data.structure = &structure;
     initializeArrays(&data, structure);
 
 
@@ -153,7 +153,7 @@ clear_memory_constants(&data);
 // set the sources
     HostSources host_sources;
     DeviceSources device_sources;
-    host_sources.add_source(512, 512, SINUSOID_SOURCE, 2 * PI * 5e14, 1);
+    host_sources.add_source(200, 200, SINUSOID_SOURCE, 2 * PI * 5e14, 1);
 
     data.sources = &device_sources;
     copy_sources_device_to_host(&host_sources, &device_sources);

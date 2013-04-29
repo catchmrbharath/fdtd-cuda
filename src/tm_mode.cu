@@ -45,8 +45,13 @@ void anim_gpu_tm(Datablock *d, int ticks){
     float_to_color<<<blocks, threads>>> (d->output_bitmap,
                                         d->fields[TM_EZFIELD]);
 
-    checkCudaErrors(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap,
-                        bitmap->image_size(), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
+                                sizeof(float) * d->structure->x_index_dim,
+                                d->output_bitmap,
+                                d->structure->pitch,
+                                sizeof(float) * d->structure->x_index_dim,
+                                d->structure->y_index_dim,
+                                cudaMemcpyDeviceToHost));
 
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
@@ -85,8 +90,11 @@ void clear_memory_TM_simulation(Datablock *d){
 size_t allocateTMMemory(Datablock *data, Structure structure){
     printf("The size of the structure is %ld", structure.size());
     size_t pitch;
-    checkCudaErrors(cudaMalloc( (void **) &data->output_bitmap,
-                    structure.size()));
+
+    checkCudaErrors(cudaMallocPitch( (void **) &data->output_bitmap,
+                    &pitch, sizeof(float) * structure.x_index_dim,
+                    sizeof(float) * structure.y_index_dim ));
+
     checkCudaErrors(cudaMallocPitch( (void **) &data->fields[TM_EZFIELD],
                     &pitch, sizeof(float) * structure.x_index_dim,
                     sizeof(float) * structure.y_index_dim ));
