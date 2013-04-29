@@ -153,7 +153,7 @@ clear_memory_constants(&data);
 // set the sources
     HostSources host_sources;
     DeviceSources device_sources;
-    host_sources.add_source(512, 512, SINUSOID_SOURCE, 2 * PI * 5e14, 1);
+    host_sources.add_source(16, 16, SINUSOID_SOURCE, 2 * PI * 5e14, 1);
 
     data.sources = &device_sources;
     copy_sources_device_to_host(&host_sources, &device_sources);
