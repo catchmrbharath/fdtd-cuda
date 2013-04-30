@@ -276,9 +276,9 @@ __global__ void update_drude_ez(float *Ez,
 
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
     int left = offset - 1;
-    int bottom = offset - x_index_dim;
+    int bottom = offset - pitch / sizeof(float);
 
     if (x > 0 && y > 0 && x < x_index_dim - 1 && y < y_index_dim - 1){
         Ez[offset] = coef1[offset] * Ez[offset] +
@@ -297,7 +297,7 @@ __global__ void update_drude_jz(float *Jz,
                                 ){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
     Jz[offset] = coefa[offset] * Jz[offset] +
                  coefb[offset] * (Eznew[offset] + Ezold[offset]);
     __syncthreads();
@@ -322,7 +322,7 @@ __global__ void drude_get_coefs(float *mu,
                                 float * coef7){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * x_index_dim;
+    int offset = x + y * pitch / sizeof(float);
     float mus = mu[offset];
     float sigmamstar = sigma_star[offset];
     float sigmam = sigma[offset];

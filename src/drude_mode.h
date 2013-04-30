@@ -11,7 +11,7 @@
 
 extern "C" void anim_gpu_drude(Datablock *d, int ticks);
 extern "C" void clear_memory_drude_simulation(Datablock *d);
-extern "C" void allocate_drude_memory(Datablock *d, Structure structure);
+extern "C" size_t allocate_drude_memory(Datablock *d, Structure structure);
 extern "C" void initialize_drude_arrays(Datablock *data, Structure structure);
 extern "C" void drude_clear_memory_constants(Datablock *d);
 #endif

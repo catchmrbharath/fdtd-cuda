@@ -40,7 +40,7 @@ size_t allocate_memory(Datablock *data, Structure structure){
     else if(data->simulationType == TM_PML_SIMULATION)
         return tm_pml_allocate_memory(data, structure);
     else if(data->simulationType == DRUDE_SIMULATION)
-        allocate_drude_memory(data, structure);
+        return allocate_drude_memory(data, structure);
     return 0;
 }
 
@@ -114,7 +114,7 @@ void calculate_coefficients(Datablock *data, Structure structure){
 }
 
 int main(){
-    Datablock data(TM_PML_SIMULATION);
+    Datablock data(DRUDE_SIMULATION);
     float dx= 1e-6 / 300.0;
 
 // FIXME: check the courant factor for the max epsilon.
@@ -153,7 +153,7 @@ clear_memory_constants(&data);
 // set the sources
     HostSources host_sources;
     DeviceSources device_sources;
-    host_sources.add_source(200, 200, SINUSOID_SOURCE, 2 * PI * 5e14, 1);
+    host_sources.add_source(200, 200, SINUSOID_SOURCE, 2 * PI * 5e15, 1);
 
     data.sources = &device_sources;
     copy_sources_device_to_host(&host_sources, &device_sources);

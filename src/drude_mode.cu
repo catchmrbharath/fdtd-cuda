@@ -19,7 +19,7 @@ void anim_gpu_drude(Datablock *d, int ticks){
     CPUAnimBitmap *bitmap = d->bitmap;
     static long time_ticks = 0;
 
-    for(int i=0;i<2;i++){
+    for(int i=0;i<100;i++){
         time_ticks += 1;
         make_copy<<<blocks, threads>>>(d->fields[DRUDE_EZOLD],
                                        d->fields[DRUDE_EZFIELD]);
@@ -61,8 +61,13 @@ void anim_gpu_drude(Datablock *d, int ticks){
     float_to_color<<<blocks, threads>>> (d->output_bitmap,
             d->fields[DRUDE_EZFIELD]);
 
-    checkCudaErrors(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap,
-                bitmap->image_size(), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
+                                sizeof(float) * d->structure->x_index_dim,
+                                d->output_bitmap,
+                                d->structure->pitch,
+                                sizeof(float) * d->structure->x_index_dim,
+                                d->structure->y_index_dim,
+                                cudaMemcpyDeviceToHost));
 
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
@@ -104,48 +109,33 @@ void clear_memory_drude_simulation(Datablock *d){
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
 
-void allocate_drude_memory(Datablock *data, Structure structure){
+size_t allocate_drude_memory(Datablock *data, Structure structure){
     printf("The size of the structure is %ld \n", structure.size());
     printf("Allocation Memory\n");
+    size_t pitch;
 
-    checkCudaErrors(cudaMalloc( (void **) &data->output_bitmap,
-                    structure.size()));
-    checkCudaErrors(cudaMalloc( (void **) &data->fields[DRUDE_EZFIELD],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->fields[DRUDE_HXFIELD],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->fields[DRUDE_HYFIELD],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->fields[DRUDE_JFIELD],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->fields[DRUDE_EZOLD],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->constants[MUINDEX],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->constants[EPSINDEX],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->constants[SIGMAINDEX],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->constants[SIGMA_STAR_INDEX],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->constants[OMEGAP_INDEX],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->constants[GAMMA_INDEX],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->coefs[0],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->coefs[1],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->coefs[2],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->coefs[3],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->coefs[4],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->coefs[5],
-                    structure.size() ));
-    checkCudaErrors(cudaMalloc( (void **) &data->coefs[6],
-                    structure.size() ));
+    checkCudaErrors(cudaMallocPitch( (void **) &data->output_bitmap,
+                    &pitch, sizeof(float) * structure.x_index_dim,
+                    sizeof(float) * structure.y_index_dim ));
+
+    for(int i = 0;i < 5;i++){
+        checkCudaErrors(cudaMallocPitch( (void **) &data->fields[i],
+                    &pitch, sizeof(float) * structure.x_index_dim,
+                    sizeof(float) * structure.y_index_dim ));
+    }
+
+    for(int i = 0; i < 6; i++){
+        checkCudaErrors(cudaMallocPitch( (void **) &data->constants[i],
+                    &pitch, sizeof(float) * structure.x_index_dim,
+                    sizeof(float) * structure.y_index_dim ));
+    }
+
+    for(int i = 0;i < 7; i++){
+        checkCudaErrors(cudaMallocPitch( (void **) &data->coefs[i],
+                    &pitch, sizeof(float) * structure.x_index_dim,
+                    sizeof(float) * structure.y_index_dim ));
+    }
+    return pitch;
 }
 
 void initialize_drude_arrays(Datablock *data, Structure structure){
@@ -156,44 +146,56 @@ void initialize_drude_arrays(Datablock *data, Structure structure){
     printf("Initializing arrays\n");
 
     // FIXME: Temporary fix for populating values.
-
-    float * temp = (float *) malloc(structure.size());
+    float * temp = (float *)malloc(sizeof(float) * size);
     std::fill_n(temp, size, MU);
-    cudaMemcpy(data->constants[MUINDEX],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[MUINDEX], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, EPSILON);
-    cudaMemcpy(data->constants[EPSINDEX],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[EPSINDEX], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, 0.0);
-    cudaMemcpy(data->constants[SIGMAINDEX],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMAINDEX], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) * structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, 0.0);
-    cudaMemcpy(data->constants[SIGMA_STAR_INDEX],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMA_STAR_INDEX], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) *  structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
+
 
     std::fill_n(temp, size, 2.0 * PI * 2e15);
-    cudaMemcpy(data->constants[OMEGAP_INDEX],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[OMEGAP_INDEX], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) *  structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
 
     std::fill_n(temp, size, 57e12);
-    cudaMemcpy(data->constants[GAMMA_INDEX],temp,structure.size(),
-                cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy2D(data->constants[GAMMA_INDEX], structure.pitch,
+                temp, sizeof(float) * structure.x_index_dim,
+                sizeof(float) *  structure.x_index_dim,
+                structure.y_index_dim,
+                cudaMemcpyHostToDevice));
+   dim3 blocks((data->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
+                (data->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
+    dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
-    thrust::device_ptr<float> hx_field_ptr(data->fields[DRUDE_EZFIELD]);
-    thrust::fill(hx_field_ptr, hx_field_ptr + size, 0);
-
-    thrust::device_ptr<float> ezold_field_ptr(data->fields[DRUDE_EZOLD]);
-    thrust::fill(ezold_field_ptr, ezold_field_ptr + size, 0);
-
-    thrust::device_ptr<float> hy_field_ptr(data->fields[DRUDE_HXFIELD]);
-    thrust::fill(hy_field_ptr, hy_field_ptr + size, 0);
-
-    thrust::device_ptr<float> ez_field_ptr(data->fields[DRUDE_HYFIELD]);
-    thrust::fill(ez_field_ptr, ez_field_ptr + size, 0);
-
-    thrust::device_ptr<float> j_field_ptr(data->fields[DRUDE_JFIELD]);
-    thrust::fill(j_field_ptr, j_field_ptr + size, 0);
+    initialize_array<<<blocks, threads>>>(data->fields[DRUDE_EZFIELD], 0);
+    initialize_array<<<blocks, threads>>>(data->fields[DRUDE_EZOLD], 0);
+    initialize_array<<<blocks, threads>>>(data->fields[DRUDE_HXFIELD], 0);
+    initialize_array<<<blocks, threads>>>(data->fields[DRUDE_HYFIELD], 0);
+    initialize_array<<<blocks, threads>>>(data->fields[DRUDE_JFIELD], 0);
 }
