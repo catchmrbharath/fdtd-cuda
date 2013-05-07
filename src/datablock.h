@@ -54,7 +54,6 @@ struct Datablock{
     float *field;
     float ** coefs;
     CPUAnimBitmap *bitmap;
-    cudaEvent_t start, stop;
     float totalTime;
     float frames;
     int simulationType;
