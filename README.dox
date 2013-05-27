@@ -1,0 +1,9 @@
+/*!
+
+@mainpage FDTD with Cuda
+@author Bharath M R
+This is an implementation of the finite difference time domain method
+on cuda. The project aims to become a replacement to the commercial softwares
+used at IIT Madras.
+
+*/

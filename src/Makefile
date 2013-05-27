@@ -1,5 +1,5 @@
 CC = nvcc
-OBJECTS = fdtd.o drude_mode.o tm_mode.o kernels.o pml_mode.o
+OBJECTS = fdtd.o drude_mode.o tm_mode.o kernels.o pml_mode.o common_functions.o
 FINAL = fdtd
 LDFLAGS = -lglut -lGL -lpthread
 

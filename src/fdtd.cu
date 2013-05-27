@@ -1,3 +1,7 @@
+/*! @file fdtd.cu
+
+  @brief This is the entry point of the file.
+  */
 #include "cuda.h"
 #include "cpu_anim.h"
 #include "helper_cuda.h"
@@ -13,6 +17,11 @@
 #include "tm_mode.h"
 #include "pml_mode.h"
 #include "drude_mode.h"
+#include<fstream>
+#include<assert.h>
+#include<string>
+#include "common_functions.h"
+using namespace std;
 
 void anim_gpu(Datablock *d, int ticks){
     if(d->simulationType == TM_SIMULATION)
@@ -113,16 +122,23 @@ void calculate_coefficients(Datablock *data, Structure structure){
 
 }
 
-int main(){
-    Datablock data(DRUDE_SIMULATION);
-    float dx= 1e-6 / 300.0;
-
-// FIXME: check the courant factor for the max epsilon.
-
+int main(int argc, char **argv){
+    assert(argc == 2);
+    fstream fs;
+    fs.open(argv[1]);
+    assert(fs.is_open());
+    int simulation_type;
+    fs>>simulation_type;
+    Datablock data(simulation_type);
+    float dx;
+    fs>>dx;
     float courant = 0.5;
     float dt =  courant * dx / LIGHTSPEED;
     printf("dt = %f", dt);
-    Structure structure(400, 400, dx, dt);
+
+    int xdim, ydim;
+    fs>>xdim>>ydim;
+    Structure structure(xdim, ydim, dx, dt);
 
 
     CPUAnimBitmap bitmap(structure.x_index_dim, structure.x_index_dim,
@@ -140,7 +156,17 @@ int main(){
     copy_symbols(&structure);
     printf("pitch = %d", pitch);
     data.structure = &structure;
+    string epsname, muname, sigma_name;
+    fs>>epsname;
+    cout<<epsname<<endl;
+    fs>>muname;
+    cout<<muname<<endl;
+    fs>>sigma_name;
+    cout<<sigma_name<<endl;
     initializeArrays(&data, structure);
+    initialize_eps_array(&data, epsname);
+    initialize_mu_array(&data, muname);
+    initialize_sigma_array(&data, sigma_name);
 
 
 //  get the coefficients
@@ -153,7 +179,7 @@ clear_memory_constants(&data);
 // set the sources
     HostSources host_sources;
     DeviceSources device_sources;
-    host_sources.add_source(200, 200, SINUSOID_SOURCE, 2 * PI * 5e15, 1);
+    host_sources.add_source(500, 500, SINUSOID_SOURCE, 2 * PI * 5e15, 1);
 
     data.sources = &device_sources;
     copy_sources_device_to_host(&host_sources, &device_sources);

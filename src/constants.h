@@ -1,3 +1,9 @@
+/** @file constants.h
+ * contains all the constants required for simulation.
+ * The constants are all floating points as gpus < compute
+ * capability 1.2 cannot have support for double.
+ */
+
 #ifndef __CONSTANTS__
 #define __CONSTANTS__
 #define PI 3.1415926535897932f

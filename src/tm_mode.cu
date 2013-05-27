@@ -132,6 +132,7 @@ size_t allocateTMMemory(Datablock *data, Structure structure){
     return pitch;
 }
 
+
 void initialize_TM_arrays(Datablock *data, Structure structure){
     int size = structure.grid_size();
     printf("%ld\n", size);
@@ -140,28 +141,7 @@ void initialize_TM_arrays(Datablock *data, Structure structure){
 
     // FIXME: Temporary fix for populating values.
 
-    float * temp = (float *) malloc(structure.size());
-    std::fill_n(temp, size, MU);
-    checkCudaErrors(cudaMemcpy2D(data->constants[MUINDEX], structure.pitch,
-                temp, sizeof(float) * structure.x_index_dim,
-                sizeof(float) * structure.x_index_dim,
-                structure.y_index_dim,
-                cudaMemcpyHostToDevice));
-
-    std::fill_n(temp, size, EPSILON * 20);
-    checkCudaErrors(cudaMemcpy2D(data->constants[EPSINDEX], structure.pitch,
-                temp, sizeof(float) * structure.x_index_dim,
-                sizeof(float) * structure.x_index_dim,
-                structure.y_index_dim,
-                cudaMemcpyHostToDevice));
-
-    std::fill_n(temp, size, 0.0);
-    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMAINDEX], structure.pitch,
-                temp, sizeof(float) * structure.x_index_dim,
-                sizeof(float) * structure.x_index_dim,
-                structure.y_index_dim,
-                cudaMemcpyHostToDevice));
-
+    float * temp = (float *)malloc(sizeof(float) * size);
     std::fill_n(temp, size, 0.0);
     checkCudaErrors(cudaMemcpy2D(data->constants[SIGMA_STAR_INDEX], structure.pitch,
                 temp, sizeof(float) * structure.x_index_dim,
@@ -179,6 +159,9 @@ void initialize_TM_arrays(Datablock *data, Structure structure){
     initialize_array<<<blocks, threads>>>(data->fields[TM_HYFIELD], 0);
     initialize_array<<<blocks, threads>>>(data->fields[TM_EZFIELD], 0);
 }
+
+
+
 
 void copy_sources_device_to_host(HostSources * host_sources, DeviceSources *device_sources){
     int number_of_sources = host_sources->get_size();
