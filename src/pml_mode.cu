@@ -13,7 +13,7 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
     printf("time ticks = %ld", time_ticks);
     printf("time ticks = %ld", time_ticks);
 
-    for(int i=0;i<100;i++){
+    for(int i=0;i<1;i++){
         time_ticks += 1;
         copy_sources<<<source_blocks, source_threads>>>(
                 d->fields[TM_PML_EZFIELD],
@@ -135,64 +135,59 @@ size_t tm_pml_allocate_memory(Datablock *data, Structure structure){
 
 }
 
-void tm_pml_initialize_arrays(Datablock *data, Structure structure){
+void tm_pml_initialize_arrays(Datablock *d, Structure structure, ifstream &fs){
     int size = structure.grid_size();
     printf("%ld\n", size);
     printf("%ld\n", structure.x_index_dim);
     printf("%ld\n", structure.y_index_dim);
 
-    // FIXME: Temporary fix for populating values.
-    float * temp = (float *) malloc(structure.size());
-    std::fill_n(temp, size, MU);
-    checkCudaErrors(cudaMemcpy2D(data->constants[MUINDEX], structure.pitch,
-                temp, sizeof(float) * structure.x_index_dim,
-                sizeof(float) * structure.x_index_dim,
-                structure.y_index_dim,
+    string epsname, muname, sigma_x_name, sigma_y_name;
+    string sigma_star_x_name, sigma_star_y_name;
+    fs>>epsname;
+    fs>>muname;
+    fs>>sigma_x_name;
+    fs>>sigma_y_name;
+    fs>>sigma_star_x_name;
+    fs>>sigma_star_y_name;
+
+    initialize_eps_array(d, epsname);
+    initialize_mu_array(d, muname);
+    float * temp = (float *)malloc(sizeof(float) * size);
+    parse_csv(sigma_x_name, temp, size);
+    checkCudaErrors(cudaMemcpy2D(d->constants[SIGMAINDEX_X], d->structure->pitch,
+                temp, sizeof(float) * d->structure->x_index_dim,
+                sizeof(float) * d->structure->x_index_dim,
+                d->structure->y_index_dim,
                 cudaMemcpyHostToDevice));
 
-    std::fill_n(temp, size, EPSILON * 20);
-    checkCudaErrors(cudaMemcpy2D(data->constants[EPSINDEX], structure.pitch,
-                temp, sizeof(float) * structure.x_index_dim,
-                sizeof(float) * structure.x_index_dim,
-                structure.y_index_dim,
+    parse_csv(sigma_y_name, temp, size);
+    checkCudaErrors(cudaMemcpy2D(d->constants[SIGMAINDEX_Y], d->structure->pitch,
+                temp, sizeof(float) * d->structure->x_index_dim,
+                sizeof(float) * d->structure->x_index_dim,
+                d->structure->y_index_dim,
                 cudaMemcpyHostToDevice));
 
-    std::fill_n(temp, size, 0.0);
-    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMAINDEX_X], structure.pitch,
-                temp, sizeof(float) * structure.x_index_dim,
-                sizeof(float) * structure.x_index_dim,
-                structure.y_index_dim,
+    parse_csv(sigma_star_x_name, temp, size);
+    checkCudaErrors(cudaMemcpy2D(d->constants[SIGMA_STAR_INDEX_X], d->structure->pitch,
+                temp, sizeof(float) * d->structure->x_index_dim,
+                sizeof(float) * d->structure->x_index_dim,
+                d->structure->y_index_dim,
                 cudaMemcpyHostToDevice));
 
-    std::fill_n(temp, size, 0.0);
-    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMAINDEX_Y], structure.pitch,
-                temp, sizeof(float) * structure.x_index_dim,
-                sizeof(float) *  structure.x_index_dim,
-                structure.y_index_dim,
+    parse_csv(sigma_star_y_name, temp, size);
+    checkCudaErrors(cudaMemcpy2D(d->constants[SIGMA_STAR_INDEX_Y], d->structure->pitch,
+                temp, sizeof(float) * d->structure->x_index_dim,
+                sizeof(float) * d->structure->x_index_dim,
+                d->structure->y_index_dim,
                 cudaMemcpyHostToDevice));
 
-
-    std::fill_n(temp, size, 0.0);
-    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMA_STAR_INDEX_X], structure.pitch,
-                temp, sizeof(float) * structure.x_index_dim,
-                sizeof(float) * structure.x_index_dim,
-                structure.y_index_dim,
-                cudaMemcpyHostToDevice));
-
-    std::fill_n(temp, size, 0.0);
-    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMA_STAR_INDEX_Y], structure.pitch,
-                temp, sizeof(float) * structure.x_index_dim,
-                sizeof(float) *  structure.x_index_dim,
-                structure.y_index_dim,
-                cudaMemcpyHostToDevice));
-
-    dim3 blocks((data->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
-                (data->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
+    dim3 blocks((d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
+                (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
     dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
-    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_HXFIELD], 0);
-    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_HYFIELD], 0);
-    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_EZFIELD], 0);
-    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_EZXFIELD], 0);
-    initialize_array<<<blocks, threads>>>(data->fields[TM_PML_EZYFIELD], 0);
+    initialize_array<<<blocks, threads>>>(d->fields[TM_PML_HXFIELD], 0);
+    initialize_array<<<blocks, threads>>>(d->fields[TM_PML_HYFIELD], 0);
+    initialize_array<<<blocks, threads>>>(d->fields[TM_PML_EZFIELD], 0);
+    initialize_array<<<blocks, threads>>>(d->fields[TM_PML_EZXFIELD], 0);
+    initialize_array<<<blocks, threads>>>(d->fields[TM_PML_EZYFIELD], 0);
 }

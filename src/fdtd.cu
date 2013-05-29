@@ -53,11 +53,11 @@ size_t allocate_memory(Datablock *data, Structure structure){
     return 0;
 }
 
-void initializeArrays(Datablock *data, Structure structure){
+void initializeArrays(Datablock *data, Structure structure, ifstream &fs){
     if(data->simulationType == TM_SIMULATION)
-        initialize_TM_arrays(data, structure);
+        initialize_TM_arrays(data, structure, fs);
     else if(data->simulationType == TM_PML_SIMULATION)
-        tm_pml_initialize_arrays(data, structure);
+        tm_pml_initialize_arrays(data, structure, fs);
     else if(data->simulationType == DRUDE_SIMULATION)
         initialize_drude_arrays(data, structure);
 }
@@ -124,7 +124,7 @@ void calculate_coefficients(Datablock *data, Structure structure){
 
 int main(int argc, char **argv){
     assert(argc == 2);
-    fstream fs;
+    ifstream fs;
     fs.open(argv[1]);
     assert(fs.is_open());
     int simulation_type;
@@ -156,18 +156,7 @@ int main(int argc, char **argv){
     copy_symbols(&structure);
     printf("pitch = %d", pitch);
     data.structure = &structure;
-    string epsname, muname, sigma_name;
-    fs>>epsname;
-    cout<<epsname<<endl;
-    fs>>muname;
-    cout<<muname<<endl;
-    fs>>sigma_name;
-    cout<<sigma_name<<endl;
-    initializeArrays(&data, structure);
-    initialize_eps_array(&data, epsname);
-    initialize_mu_array(&data, muname);
-    initialize_sigma_array(&data, sigma_name);
-
+    initializeArrays(&data, structure, fs);
 
 //  get the coefficients
     calculate_coefficients(&data, structure);
@@ -179,7 +168,7 @@ clear_memory_constants(&data);
 // set the sources
     HostSources host_sources;
     DeviceSources device_sources;
-    host_sources.add_source(500, 500, SINUSOID_SOURCE, 2 * PI * 5e15, 1);
+    host_sources.add_source(512 + 50, 512 + 50, SINUSOID_SOURCE, 2 * PI * LIGHTSPEED / 2e-6, 1);
 
     data.sources = &device_sources;
     copy_sources_device_to_host(&host_sources, &device_sources);

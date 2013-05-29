@@ -133,31 +133,42 @@ size_t allocateTMMemory(Datablock *data, Structure structure){
 }
 
 
-void initialize_TM_arrays(Datablock *data, Structure structure){
+void initialize_TM_arrays(Datablock *d, Structure structure, ifstream &fs){
     int size = structure.grid_size();
     printf("%ld\n", size);
     printf("%ld\n", structure.x_index_dim);
     printf("%ld\n", structure.y_index_dim);
 
-    // FIXME: Temporary fix for populating values.
+    string epsname, muname, sigmaname;
+    fs>>epsname;
+    fs>>muname;
+    fs>>sigmaname;
 
+    initialize_eps_array(d, epsname);
+    initialize_mu_array(d, muname);
     float * temp = (float *)malloc(sizeof(float) * size);
+    parse_csv(sigmaname, temp, size);
+    checkCudaErrors(cudaMemcpy2D(d->constants[SIGMAINDEX], d->structure->pitch,
+                temp, sizeof(float) * d->structure->x_index_dim,
+                sizeof(float) * d->structure->x_index_dim,
+                d->structure->y_index_dim,
+                cudaMemcpyHostToDevice));
+
     std::fill_n(temp, size, 0.0);
-    checkCudaErrors(cudaMemcpy2D(data->constants[SIGMA_STAR_INDEX], structure.pitch,
+    checkCudaErrors(cudaMemcpy2D(d->constants[SIGMA_STAR_INDEX], structure.pitch,
                 temp, sizeof(float) * structure.x_index_dim,
                 sizeof(float) *  structure.x_index_dim,
                 structure.y_index_dim,
                 cudaMemcpyHostToDevice));
 
-    // FIXME : For 2d pitch this has to be modified.
-    dim3 blocks((data->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
-                (data->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
+    dim3 blocks((d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
+                (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
     dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
 
-    initialize_array<<<blocks, threads>>>(data->fields[TM_HXFIELD], 0);
-    initialize_array<<<blocks, threads>>>(data->fields[TM_HYFIELD], 0);
-    initialize_array<<<blocks, threads>>>(data->fields[TM_EZFIELD], 0);
+    initialize_array<<<blocks, threads>>>(d->fields[TM_HXFIELD], 0);
+    initialize_array<<<blocks, threads>>>(d->fields[TM_HYFIELD], 0);
+    initialize_array<<<blocks, threads>>>(d->fields[TM_EZFIELD], 0);
 }
 
 
