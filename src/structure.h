@@ -10,18 +10,16 @@
 #include "stdio.h"
 
 struct Structure{
-    float xdim;
-    float ydim;
-    int x_index_dim;
-    int y_index_dim;
-    float courant;
-    float dx;
-    float dt;
-    long total_ticks;
-    long present_ticks;
-    char * name;
-    size_t pitch;
-    HostSources * sources;
+    int x_index_dim; //! xdimension of the structure (array size).
+    int y_index_dim; //! ydimension of the structure (array size).
+    float courant;  //! courant factor used for the structure.
+    float dx; //! The spatial step size.
+    float dt; //! The time domain step size.
+    long total_ticks; //! The number of ticks to stop at
+    long save_ticks; //! Number of ticks after which the field values should be saved.
+    char * name; //! Prefix of the saved file names.
+    size_t pitch; //! row size in bytes after memory allocation
+    HostSources * sources; //! array where sources are stored.
 
     Structure(int xindexdim, int yindexdim, float dxin, float dtin){
         x_index_dim = xindexdim;
@@ -38,15 +36,6 @@ struct Structure{
         long temp = x_index_dim * y_index_dim;
         printf("The size is %ld\n", temp);
         return (long) (x_index_dim * y_index_dim);
-    }
-
-    void set_sources(int x, int y, int source_type){
-        //FIXME Add different types of sources.
-        sources->x_source_position.push_back(x);
-        sources->y_source_position.push_back(y);
-        sources->source_type.push_back(0);
-        sources->mean.push_back(1);
-        sources->variance.push_back(0);
     }
 };
 #endif
