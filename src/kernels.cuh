@@ -1,3 +1,7 @@
+/*! @file kernels.cuh
+    @author Bharath M R
+*/
+
 #ifndef __KERNELS__
 #define __KERNELS__
 #include "structure.h"
@@ -10,11 +14,11 @@
    They are static i.e. they cannot be exposed to other functions in
    other files and they will be initiated to zero if not handled properly.
 */
-__device__ __constant__ int x_index_dim;
-__device__ __constant__ int y_index_dim;
-__device__ __constant__ float delta;
-__device__ __constant__ float deltat;
-__device__ __constant__ size_t pitch;
+__device__ __constant__ int x_index_dim; //! x dimension of the structure
+__device__ __constant__ int y_index_dim; //! y dimension of the structure.
+__device__ __constant__ float delta; //! The dx of the structure.
+__device__ __constant__ float deltat; //! The dt of the structure
+__device__ __constant__ size_t pitch; //! The pitch of the structure. Pitch is the row size in bytes.
 
 __global__ void copy_sources(float * target, int * x_position, int *y_position,
                             int * type, float * mean, float * variance,
@@ -98,6 +102,4 @@ __global__ void update_drude_jz(float *Jz,
 
 __global__ void make_copy(float * E_old, float * E_new);
 __global__ void initialize_array(float * field, float value);
-
 #endif
-

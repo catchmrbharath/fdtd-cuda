@@ -1,5 +1,11 @@
 #include "pml_mode.h"
 
+/*! @brief TM mode iteration function
+  This is the function which runs all the updates. It runs
+  the updates for a certain number of iterations and returns
+  the results
+*/
+
 void anim_gpu_pml_tm(Datablock *d, int ticks){
     checkCudaErrors(cudaEventRecord(d->start, 0) );
     dim3 blocks((d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
@@ -13,7 +19,7 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
     printf("time ticks = %ld", time_ticks);
     printf("time ticks = %ld", time_ticks);
 
-    for(int i=0;i<1;i++){
+    for(int i=0;i<50;i++){
         time_ticks += 1;
         copy_sources<<<source_blocks, source_threads>>>(
                 d->fields[TM_PML_EZFIELD],
@@ -50,9 +56,11 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
                                             d->fields[TM_PML_EZFIELD]);
     }
 
+    /* convert field to color */
     float_to_color<<<blocks, threads>>> (d->output_bitmap,
                                         d->fields[TM_PML_EZFIELD]);
 
+    /*Copy back to cpu memory */
     checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
                                 sizeof(float) * d->structure->x_index_dim,
                                 d->output_bitmap,
@@ -71,6 +79,7 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
     printf("Average time per frame: %3.1f ms\n", elapsedTime);
 }
 
+/*! @brief: Frees cuda memory for constants TM PML mode */
 void tm_pml_clear_memory_constants(Datablock *d){
     cudaFree(d->constants[SIGMAINDEX_X]);
     cudaFree(d->constants[SIGMAINDEX_Y]);
@@ -80,6 +89,8 @@ void tm_pml_clear_memory_constants(Datablock *d){
     cudaFree(d->constants[MUINDEX]);
 }
 
+/*! @brief Frees the cuda memory for everything */
+//FIXME Convert this to a for loop.
 void clear_memory_TM_PML_simulation(Datablock *d){
     cudaFree(d->fields[TM_PML_EZFIELD]);
     cudaFree(d->fields[TM_PML_EZXFIELD]);
@@ -107,6 +118,12 @@ void clear_memory_TM_PML_simulation(Datablock *d){
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
 
+/*! @brief Allocates memory for simulation
+
+  Returns
+  @params Returns the pitch which is the row length in bytes. Used in
+  accessing two dimensional data.
+*/
 size_t tm_pml_allocate_memory(Datablock *data, Structure structure){
     size_t pitch;
     checkCudaErrors(cudaMallocPitch( (void **) &data->output_bitmap,
@@ -135,6 +152,12 @@ size_t tm_pml_allocate_memory(Datablock *data, Structure structure){
 
 }
 
+/*! @brief Initializes the arrays from the configuration file.
+
+    @param d The datablock which stores the fields and coeficients
+    @param structure Stores the dimensions of the file.
+    @param fs The input file stream of the configuration file.
+*/
 void tm_pml_initialize_arrays(Datablock *d, Structure structure, ifstream &fs){
     int size = structure.grid_size();
     printf("%ld\n", size);
@@ -153,6 +176,7 @@ void tm_pml_initialize_arrays(Datablock *d, Structure structure, ifstream &fs){
     initialize_eps_array(d, epsname);
     initialize_mu_array(d, muname);
     float * temp = (float *)malloc(sizeof(float) * size);
+    /* Read the csv file and get the sigma array */
     parse_csv(sigma_x_name, temp, size);
     checkCudaErrors(cudaMemcpy2D(d->constants[SIGMAINDEX_X], d->structure->pitch,
                 temp, sizeof(float) * d->structure->x_index_dim,
@@ -160,6 +184,7 @@ void tm_pml_initialize_arrays(Datablock *d, Structure structure, ifstream &fs){
                 d->structure->y_index_dim,
                 cudaMemcpyHostToDevice));
 
+    // Similarly parse every csv file.
     parse_csv(sigma_y_name, temp, size);
     checkCudaErrors(cudaMemcpy2D(d->constants[SIGMAINDEX_Y], d->structure->pitch,
                 temp, sizeof(float) * d->structure->x_index_dim,
@@ -185,6 +210,7 @@ void tm_pml_initialize_arrays(Datablock *d, Structure structure, ifstream &fs){
                 (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
     dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
 
+    // Initialize all the fields to zero.
     initialize_array<<<blocks, threads>>>(d->fields[TM_PML_HXFIELD], 0);
     initialize_array<<<blocks, threads>>>(d->fields[TM_PML_HYFIELD], 0);
     initialize_array<<<blocks, threads>>>(d->fields[TM_PML_EZFIELD], 0);

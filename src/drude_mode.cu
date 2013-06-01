@@ -1,3 +1,8 @@
+/*! @file drude_mode.cu
+   @author Bharath M R
+
+   @brief Contains the functions for the drude mode.
+*/
 #include "drude_mode.h"
 #include "constants.h"
 /**
@@ -78,6 +83,8 @@ void anim_gpu_drude(Datablock *d, int ticks){
     printf("Average time per frame: %3.1f ms\n", elapsedTime);
 }
 
+/*! @brief Clears the constants after the coefficients are calculated
+  */
 void drude_clear_memory_constants(Datablock *d){
     cudaFree(d->constants[SIGMAINDEX]);
     cudaFree(d->constants[SIGMA_STAR_INDEX]);
@@ -87,6 +94,9 @@ void drude_clear_memory_constants(Datablock *d){
     cudaFree(d->constants[OMEGAP_INDEX]);
 }
 
+/*! @ brief Clears the memory after the simulation. */
+
+//TODO: Replace the calls with a for loop.
 void clear_memory_drude_simulation(Datablock *d){
     cudaFree(d->fields[DRUDE_EZFIELD]);
     cudaFree(d->fields[DRUDE_HXFIELD]);
@@ -109,10 +119,11 @@ void clear_memory_drude_simulation(Datablock *d){
     checkCudaErrors(cudaEventDestroy(d->stop) );
 }
 
+/*! @brief Allocates the memory for the simulation */
 size_t allocate_drude_memory(Datablock *data, Structure structure){
     printf("The size of the structure is %ld \n", structure.size());
     printf("Allocation Memory\n");
-    size_t pitch;
+    size_t pitch; //! pitch is the row size in bytes.
 
     checkCudaErrors(cudaMallocPitch( (void **) &data->output_bitmap,
                     &pitch, sizeof(float) * structure.x_index_dim,
@@ -138,6 +149,7 @@ size_t allocate_drude_memory(Datablock *data, Structure structure){
     return pitch;
 }
 
+/*! @brief Allocates the memory for the simulation */
 void initialize_drude_arrays(Datablock *data, Structure structure){
     int size = structure.grid_size();
     printf("%ld\n", size);

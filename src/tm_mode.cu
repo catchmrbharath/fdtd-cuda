@@ -1,6 +1,15 @@
+/*! @file tm_mode.cu
+    @brief TM mode simulation file
+
+    Contains all the methods except the kernels for working
+    on a TM mode simulation.
+*/
+
 #include "tm_mode.h"
 #include "constants.h"
 
+/*! @brief The wrapper function which updates all the kernels.
+  */
 void anim_gpu_tm(Datablock *d, int ticks){
     checkCudaErrors(cudaEventRecord(d->start, 0) );
     dim3 blocks((d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,

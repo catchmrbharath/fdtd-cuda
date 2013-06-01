@@ -1,7 +1,11 @@
+/*! @file kernels.cu
+    @author Bharath M R
+*/
 #include "kernels.cuh"
 
 
 // TODO: Add gaussian sources.
+/*! @brief Copies the sources from the sources array to the Ez position */
 __global__ void copy_sources(float * target, int * x_position, int *y_position,
                             int * type, float * mean, float * variance,
                             int sources_size, long time_ticks) {
@@ -18,12 +22,16 @@ __global__ void copy_sources(float * target, int * x_position, int *y_position,
             target[offset] = temp2 * temp;
         }
         else
-            target[offset] = 1;
+            target[offset] = __expf(time_ticks);
     }
     __syncthreads();
 }
+/*! @brief Hx updates for the TM mode.
+
+  @params Hx - Hx array
+  @params Ez - Ez array
+*/
 __global__ void update_Hx(float *Hx, float *Ez, float *coef1, float* coef2){
-// FIXME : pitch here is in bytes.
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int offset = x + y * pitch / sizeof(float);
@@ -34,8 +42,9 @@ __global__ void update_Hx(float *Hx, float *Ez, float *coef1, float* coef2){
     __syncthreads();
 }
 
+/*! @brief Hy updates for TM mode.
+  */
 __global__ void update_Hy(float *Hy, float *Ez, float * coef1, float * coef2){
-
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int offset = x + y * pitch / sizeof(float);
@@ -46,6 +55,8 @@ __global__ void update_Hy(float *Hy, float *Ez, float * coef1, float * coef2){
     __syncthreads();
 }
 
+/*! @brief Ez updates for TM mode.
+  */
 __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
                             float *coef2){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -66,6 +77,8 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
 
 
 
+/*! @brief Calculates tm mode coefficients.
+  */
 __global__ void tm_getcoeff(float *mu,
                                 float * epsilon,
                                 float *sigma,
@@ -92,6 +105,7 @@ __global__ void tm_getcoeff(float *mu,
     __syncthreads();
 }
 
+/*! @brief Converts HSL value to RGB value */
 __device__ unsigned char value( float n1, float n2, int hue ) {
     if (hue > 360)      hue -= 360;
     else if (hue < 0)   hue += 360;
@@ -105,6 +119,7 @@ __device__ unsigned char value( float n1, float n2, int hue ) {
     return (unsigned char)(255 * n1);
 }
 
+/*! @brief Converts a floating point value to color */
 __global__ void float_to_color( unsigned char *optr,
                               const float *outSrc ) {
     // map from threadIdx/BlockIdx to pixel position
@@ -129,6 +144,7 @@ __global__ void float_to_color( unsigned char *optr,
     optr[offset*4 + 3] = 255;
 }
 
+/*! @brief Converts a floating point value to color */
 __global__ void float_to_color( uchar4 *optr,
                               const float *outSrc ) {
     // map from threadIdx/BlockIdx to pixel position
@@ -153,6 +169,7 @@ __global__ void float_to_color( uchar4 *optr,
     optr[offset].w = 255;
 }
 
+/* @brief copies the constants to constant memory */
 void copy_symbols(Structure *structure){
     checkCudaErrors(cudaMemcpyToSymbol(x_index_dim, &(structure->x_index_dim),
                     sizeof(int)));
@@ -170,6 +187,7 @@ void copy_symbols(Structure *structure){
 
 // Bad design. Too many arguments to the functions. Can't help it.
 // FIXME sometime
+/*! @brief TM Mode with PML */
 __global__ void pml_tm_get_coefs(float *mu,
                               float *epsilon,
                               float *sigma_x,
@@ -219,6 +237,10 @@ __global__ void pml_tm_get_coefs(float *mu,
                     ((2 * eps + sigma_y_value * deltat) * delta);
 }
 
+/*! @brief PML Ezx update.
+
+  The pitch is used for handling non multiples of 32 grids.
+*/
 __global__ void update_pml_ezx(float * Ezx, float *Hy,
                                 float * coef1, float *coef2){
 
@@ -234,6 +256,11 @@ __global__ void update_pml_ezx(float * Ezx, float *Hy,
     __syncthreads();
 }
 
+/*!
+  @brief PML Ezy update.
+
+  See info about pitch at the top of the file.
+*/
 __global__ void update_pml_ezy(float * Ezy, float *Hx,
                                 float * coef1, float *coef2){
 
@@ -249,6 +276,10 @@ __global__ void update_pml_ezy(float * Ezy, float *Hx,
     __syncthreads();
 }
 
+/*! @brief PML Ez update.
+  
+  Ez = Ezx + Ezy
+*/
 __global__ void update_pml_ez(float * Ezx, float *Ezy, float *Ez){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -257,6 +288,11 @@ __global__ void update_pml_ez(float * Ezx, float *Ezy, float *Ez){
     __syncthreads();
 }
 
+
+/*! @brief Copy data from one source to another.
+    @deprecated
+  Not really used anywhere. memCpy replaces this.
+*/
 __global__ void make_copy(float * E_old, float * E_new){
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -266,6 +302,12 @@ __global__ void make_copy(float * E_old, float * E_new){
 }
 
 // FIXME Need better names for coef1. Is confusing.
+/*! @brief Drude Ez update.
+
+   Drude model uses the same Hx and Hy updates as that
+   of TM mode.
+*/
+
 __global__ void update_drude_ez(float *Ez,
                                 float *Hx,
                                 float * Hy,
@@ -289,6 +331,9 @@ __global__ void update_drude_ez(float *Ez,
     __syncthreads();
 }
 
+/*!
+  @brief: Jz update for drude model.
+*/
 __global__ void update_drude_jz(float *Jz,
                                 float *Eznew,
                                 float *Ezold,
@@ -307,6 +352,7 @@ __global__ void update_drude_jz(float *Jz,
 
 /* kernels for gain materials */
 
+/*! @brief Calculates coefficients for drude model. */
 __global__ void drude_get_coefs(float *mu,
                                 float * epsilon,
                                 float *sigma,
@@ -354,6 +400,11 @@ __global__ void drude_get_coefs(float *mu,
     __syncthreads();
 }
 
+
+/*@brief Initializes an array to a particular value.
+
+  Used to set initial values for fields.
+*/
 
 __global__ void initialize_array(float * field, float value){
     int x = threadIdx.x + blockIdx.x * blockDim.x;

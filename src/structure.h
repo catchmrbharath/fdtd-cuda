@@ -1,3 +1,7 @@
+/*! @file structure.h
+ * @author Bharath M R
+ * @brief Contains details about the structure.
+ */
 #ifndef _STRUCTURE_H_
 #define _STRUCTURE_H_
 #include "cuda.h"

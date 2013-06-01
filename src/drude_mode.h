@@ -1,3 +1,8 @@
+/*! @brief Header file for drude simulations.
+ *
+ * @author Bharath M R
+ * Contains all the functions for handling the drude simulation.
+ */
 #ifndef _DRUDE_MODE_
 #define _DRUDE_MODE_
 

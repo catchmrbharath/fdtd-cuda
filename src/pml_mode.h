@@ -1,3 +1,7 @@
+/*! @file pml_mode.h
+ * @author Bharath M R
+ * @brief header file for PML TM mode.
+ */
 #ifndef _PML_MODE_
 #define _PML_MODE_
 #include "datablock.h"

@@ -23,6 +23,9 @@
 #include "common_functions.h"
 using namespace std;
 
+/** @brief Calls the gpu kernels in order.
+  * Different types of simulation.
+  */
 void anim_gpu(Datablock *d, int ticks){
     if(d->simulationType == TM_SIMULATION)
         anim_gpu_tm(d, ticks);
@@ -32,6 +35,7 @@ void anim_gpu(Datablock *d, int ticks){
         anim_gpu_drude(d, ticks);
 }
 
+/*! @brief Clears memory when the simulation is done. */
 void anim_exit(Datablock *d){
     if(d->simulationType == TM_SIMULATION)
         clear_memory_TM_simulation(d);
@@ -42,7 +46,9 @@ void anim_exit(Datablock *d){
 
 }
 
-// FIXME: Fix all uses of pitch here
+/*! @brief Allocates memory for the simulation depending on the type
+   of the simulation.
+*/
 size_t allocate_memory(Datablock *data, Structure structure){
     if(data->simulationType == TM_SIMULATION)
         return allocateTMMemory(data, structure);
@@ -53,6 +59,7 @@ size_t allocate_memory(Datablock *data, Structure structure){
     return 0;
 }
 
+/*! @brief Initializes the memory for simulation.*/
 void initializeArrays(Datablock *data, Structure structure, ifstream &fs){
     if(data->simulationType == TM_SIMULATION)
         initialize_TM_arrays(data, structure, fs);
@@ -62,6 +69,11 @@ void initializeArrays(Datablock *data, Structure structure, ifstream &fs){
         initialize_drude_arrays(data, structure);
 }
 
+/*! @brief Clears all the constants initially declared.
+  
+  This method is called once all the coefficients are
+  calculated.
+*/
 void clear_memory_constants(Datablock *data){
     if(data->simulationType == TM_SIMULATION)
         tm_clear_memory_constants(data);
@@ -72,7 +84,9 @@ void clear_memory_constants(Datablock *data){
 
 }
 
-
+/*!
+  @brief Calculates the coefficients for each simulation.
+*/
 void calculate_coefficients(Datablock *data, Structure structure){
     dim3 blocks((structure.x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
                 (structure.y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
@@ -122,6 +136,7 @@ void calculate_coefficients(Datablock *data, Structure structure){
 
 }
 
+/*! @brief entry point */
 int main(int argc, char **argv){
     assert(argc == 2);
     ifstream fs;
@@ -142,8 +157,7 @@ int main(int argc, char **argv){
 
 
     CPUAnimBitmap bitmap(structure.x_index_dim, structure.x_index_dim,
-                            &data);
-
+                            &data); /* bitmap structure */
     data.bitmap = &bitmap;
     data.totalTime = 0;
     data.frames = 0;
