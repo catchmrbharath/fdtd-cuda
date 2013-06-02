@@ -1,6 +1,6 @@
 #include "pml_mode.h"
 #include "h5save.h"
-#include "mutex.h"
+#include "fdtd.h"
 #include<pthread.h>
 /*! @brief TM mode iteration function
   This is the function which runs all the updates. It runs
@@ -62,6 +62,7 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
 
     /*Copy back to cpu memory */
     d->present_ticks = time_ticks;
+    pthread_t thread;
     pthread_mutex_lock(&mutexcopy);
     checkCudaErrors(cudaMemcpy2D(d->save_field,
                                 sizeof(float) * d->structure->x_index_dim,
@@ -72,6 +73,7 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
                                 cudaMemcpyDeviceToHost));
     pthread_mutex_unlock(&mutexcopy);
 
+    pthread_create(&thread, NULL, &create_new_dataset, (void *)d);
     create_new_dataset(d);
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));

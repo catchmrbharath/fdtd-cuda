@@ -2,6 +2,7 @@
 
   @brief This is the entry point of the file.
   */
+#include "fdtd.h"
 #include "cuda.h"
 #include "cpu_anim.h"
 #include "helper_cuda.h"
@@ -22,7 +23,7 @@
 #include<string>
 #include "common_functions.h"
 using namespace std;
-
+pthread_mutex_t mutexcopy;
 /** @brief Calls the gpu kernels in order.
   * Different types of simulation.
   */
@@ -192,6 +193,7 @@ clear_memory_constants(&data);
 
     data.sources = &device_sources;
     copy_sources_device_to_host(&host_sources, &device_sources);
+    pthread_mutex_init(&mutexcopy, NULL);
 
     for(long i=0; i < 100; i++){
         anim_gpu(&data, 0);

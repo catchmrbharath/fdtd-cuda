@@ -2,6 +2,7 @@
 #define __H5_SAVE__
 
 #include "hdf5.h"
+#include "datablock.h"
 
 typedef struct h5data{
     int x_index_dim;
@@ -10,6 +11,7 @@ typedef struct h5data{
     long int ticks;
     float* field;
 }H5block;
+
 int createfile(char * name);
-int create_new_dataset(H5block *d);
+void *create_new_dataset(void *d);
 #endif

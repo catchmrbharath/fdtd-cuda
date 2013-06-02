@@ -2,20 +2,23 @@
 #include <stdlib.h>
 #include <string>
 #include "h5save.h"
+#include "fdtd.h"
+#include<pthread.h>
 using namespace std;
-#define FILE "file.h5"
 
 int create_file(char * name){
     hid_t file_id;
     return 0;
 }
 
-int create_new_dataset(Datablock *d){
+void *create_new_dataset(void *data){
+    Datablock *d = (Datablock *)data;
     string new_name = d->simulation_name;
     int ticks = d->present_ticks;
     char buffer[200];
     sprintf(buffer, "%s%d%s", new_name.c_str(), ticks, ".h5");
     hid_t file_id, dataset_id, dataspace_id, status, dcpl, datatype;
+    pthread_mutex_lock(&mutexcopy);
     file_id = H5Fcreate(buffer, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     hsize_t dims[2];
     dims[0] = d->structure->x_index_dim;
@@ -30,7 +33,7 @@ int create_new_dataset(Datablock *d){
     status = H5Tclose(datatype);
     status = H5Sclose(dataspace_id);
     status = H5Fclose(file_id);
-    return 1;
+    pthread_mutex_unlock(&mutexcopy);
 }
 
 
