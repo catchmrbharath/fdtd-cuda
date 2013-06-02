@@ -7,6 +7,7 @@
 
 #include "tm_mode.h"
 #include "constants.h"
+#include "h5save.h"
 
 /*! @brief The wrapper function which updates all the kernels.
   */
@@ -51,17 +52,17 @@ void anim_gpu_tm(Datablock *d, int ticks){
                                         d->coefs[2],
                                         d->coefs[3]);
     }
-    float_to_color<<<blocks, threads>>> (d->output_bitmap,
-                                        d->fields[TM_EZFIELD]);
 
-    checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
+    checkCudaErrors(cudaMemcpy2D(d->save_field,
                                 sizeof(float) * d->structure->x_index_dim,
-                                d->output_bitmap,
+                                d->fields[TM_EZFIELD],
                                 d->structure->pitch,
                                 sizeof(float) * d->structure->x_index_dim,
                                 d->structure->y_index_dim,
                                 cudaMemcpyDeviceToHost));
 
+    d->present_ticks = time_ticks;
+    create_new_dataset(d);
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
     float elapsedTime;
@@ -99,6 +100,7 @@ void clear_memory_TM_simulation(Datablock *d){
 size_t allocateTMMemory(Datablock *data, Structure structure){
     printf("The size of the structure is %ld", structure.size());
     size_t pitch;
+    data->save_field = (float *) malloc(structure.size());
 
     checkCudaErrors(cudaMallocPitch( (void **) &data->output_bitmap,
                     &pitch, sizeof(float) * structure.x_index_dim,

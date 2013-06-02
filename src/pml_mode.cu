@@ -1,5 +1,7 @@
 #include "pml_mode.h"
-
+#include "h5save.h"
+#include "mutex.h"
+#include<pthread.h>
 /*! @brief TM mode iteration function
   This is the function which runs all the updates. It runs
   the updates for a certain number of iterations and returns
@@ -57,19 +59,20 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
     }
 
     /* convert field to color */
-    float_to_color<<<blocks, threads>>> (d->output_bitmap,
-                                        d->fields[TM_PML_EZFIELD]);
 
     /*Copy back to cpu memory */
-    checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
+    d->present_ticks = time_ticks;
+    pthread_mutex_lock(&mutexcopy);
+    checkCudaErrors(cudaMemcpy2D(d->save_field,
                                 sizeof(float) * d->structure->x_index_dim,
-                                d->output_bitmap,
+                                d->fields[TM_PML_EZFIELD],
                                 d->structure->pitch,
                                 sizeof(float) * d->structure->x_index_dim,
                                 d->structure->y_index_dim,
                                 cudaMemcpyDeviceToHost));
+    pthread_mutex_unlock(&mutexcopy);
 
-
+    create_new_dataset(d);
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
     float elapsedTime;
@@ -126,6 +129,7 @@ void clear_memory_TM_PML_simulation(Datablock *d){
 */
 size_t tm_pml_allocate_memory(Datablock *data, Structure structure){
     size_t pitch;
+    data->save_field = (float *) malloc(structure.size());
     checkCudaErrors(cudaMallocPitch( (void **) &data->output_bitmap,
                     &pitch, sizeof(float) * structure.x_index_dim,
                     sizeof(float) * structure.y_index_dim ));

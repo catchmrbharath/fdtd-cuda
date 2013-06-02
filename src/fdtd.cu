@@ -142,9 +142,12 @@ int main(int argc, char **argv){
     ifstream fs;
     fs.open(argv[1]);
     assert(fs.is_open());
+    string simulation_name;
+    fs>>simulation_name;
     int simulation_type;
     fs>>simulation_type;
     Datablock data(simulation_type);
+    data.simulation_name = simulation_name;
     float dx;
     fs>>dx;
     float courant = 0.5;
@@ -176,7 +179,6 @@ int main(int argc, char **argv){
     calculate_coefficients(&data, structure);
 clear_memory_constants(&data);
 
-
 // set the sources
     HostSources host_sources;
     DeviceSources device_sources;
@@ -191,6 +193,7 @@ clear_memory_constants(&data);
     data.sources = &device_sources;
     copy_sources_device_to_host(&host_sources, &device_sources);
 
-    bitmap.anim_and_exit( (void (*)(void *, int)) anim_gpu,
-                            (void (*)(void *)) anim_exit);
+    for(long i=0; i < 100; i++){
+        anim_gpu(&data, 0);
+    }
 }

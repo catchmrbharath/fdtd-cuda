@@ -13,6 +13,8 @@
 #include "devicesources.h"
 #include "hostsources.h"
 #include "cpu_anim.h"
+#include <string>
+using namespace std;
 // This gives the best results
 #define BLOCKSIZE_X 256 //! Blocksizes used for simulation
 #define BLOCKSIZE_Y 1
@@ -66,16 +68,18 @@ struct Datablock{
     unsigned char *output_bitmap; //! bitmap file to copy into
     float ** fields; //! Device pointer to different field arrays
     float ** constants; //! Device pointer to constant arrays.
-    float *field; //! Host pointer to the field that has to be copied into.
+    float *save_field; //! Host pointer to the field that has to be copied into.
     float ** coefs; //! Device pointer to all the coefficients.
     CPUAnimBitmap *bitmap; //! Host bitmap structure pointer.
     cudaEvent_t start, stop; //! for profiling. ignore.
     float totalTime; //! For profiling. Keeps track of time for a certain number of simulations.
+    int present_ticks;
     float frames; //! Profiling.
     int simulationType; //! Simulation type: TM mode. TM PML, Drude
     Structure * structure; //! Pointer to the structure array(Contains xdim, ydim)
     int number_of_sources;
     DeviceSources * sources; //! Device pointer to the structure of arrays which contains the source definitions
+    string simulation_name;
 
     Datablock(int type){
         simulationType = type;
