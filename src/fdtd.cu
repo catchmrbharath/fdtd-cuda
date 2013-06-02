@@ -174,15 +174,19 @@ int main(int argc, char **argv){
 
 //  get the coefficients
     calculate_coefficients(&data, structure);
-
-
 clear_memory_constants(&data);
 
 
 // set the sources
     HostSources host_sources;
     DeviceSources device_sources;
-    host_sources.add_source(512 + 50, 512 + 50, SINUSOID_SOURCE, 2 * PI * LIGHTSPEED / 2e-6, 1);
+    long long x, y, source_type;
+    float mean, variance;
+    while(!fs.eof()){
+        fs>>x>>y>>source_type>>mean>>variance;
+        cout<<mean<<endl;
+        host_sources.add_source(x, y, source_type, mean, variance);
+    }
 
     data.sources = &device_sources;
     copy_sources_device_to_host(&host_sources, &device_sources);
