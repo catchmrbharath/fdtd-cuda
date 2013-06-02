@@ -28,8 +28,8 @@ int create_new_dataset(Datablock *d){
     status = H5Tclose(datatype);
     status = H5Sclose(dataspace_id);
     status = H5Fclose(file_id);
+    return 1;
 }
-    
 
 
 int test_hdf5(){
@@ -44,16 +44,17 @@ int test_hdf5(){
             data[j * xdim + i] = i * j * 0.7;
         }
 
-    Datablock d;
-    Structure s;
-    s.name = "temp";
-    s.x_index_dim = 1024;
-    s.y_index_dim = 1024;
-    d.field = data;
-    s.present_ticks = 1;
-    d.structure = &s;
-    create_file(s.name);
-    create_new_dataset(&d);
+    Datablock *d = (Datablock *)malloc(sizeof(Datablock) );
+    Structure *s = (Structure *) malloc(sizeof(Structure));
+    s->name = "temp";
+    s->x_index_dim = 1024;
+    s->y_index_dim = 1024;
+    d->field = data;
+    s->present_ticks = 1;
+    d->structure = s;
+    create_file(s->name);
+    create_new_dataset(d);
+    return 1;
 }
 
 int main(){

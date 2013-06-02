@@ -1,4 +1,5 @@
-/*! @brief Header file for drude simulations.
+/*! @file drude_mode.h
+ * @brief Header file for drude simulations.
  *
  * @author Bharath M R
  * Contains all the functions for handling the drude simulation.
