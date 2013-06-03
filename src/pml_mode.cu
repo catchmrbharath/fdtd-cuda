@@ -58,11 +58,11 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
                                             d->fields[TM_PML_EZFIELD]);
     }
 
-    /* convert field to color */
 
-    /*Copy back to cpu memory */
     d->present_ticks = time_ticks;
     pthread_t thread;
+    /*Copy back to cpu memory */
+    /*Create a lock */
     pthread_mutex_lock(&mutexcopy);
     checkCudaErrors(cudaMemcpy2D(d->save_field,
                                 sizeof(float) * d->structure->x_index_dim,

@@ -8,6 +8,7 @@
 #include "tm_mode.h"
 #include "constants.h"
 #include "h5save.h"
+#include "fdtd.h"
 
 /*! @brief The wrapper function which updates all the kernels.
   */
@@ -62,7 +63,17 @@ void anim_gpu_tm(Datablock *d, int ticks){
                                 cudaMemcpyDeviceToHost));
 
     d->present_ticks = time_ticks;
-    create_new_dataset(d);
+    pthread_t thread;
+    pthread_mutex_lock(&mutexcopy);
+    checkCudaErrors(cudaMemcpy2D(d->save_field,
+                                sizeof(float) * d->structure->x_index_dim,
+                                d->fields[TM_PML_EZFIELD],
+                                d->structure->pitch,
+                                sizeof(float) * d->structure->x_index_dim,
+                                d->structure->y_index_dim,
+                                cudaMemcpyDeviceToHost));
+    pthread_mutex_unlock(&mutexcopy);
+    pthread_create(&thread, NULL, &create_new_dataset, (void *)d);
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
     float elapsedTime;
