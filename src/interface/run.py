@@ -73,6 +73,7 @@ def make_pml(sigma, eps, mu,  pml_size, delta):
 
 if len(sys.argv) == 2:
     mod = load_source('config', sys.argv[1]);
+    print mod.name
     print mod.type
     print mod.dx
     if mod.type == 1:

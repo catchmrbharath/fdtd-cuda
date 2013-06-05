@@ -195,7 +195,7 @@ clear_memory_constants(&data);
     copy_sources_device_to_host(&host_sources, &device_sources);
     pthread_mutex_init(&mutexcopy, NULL);
 
-    for(long i=0; i < 100; i++){
+    for(long i=0; i < 3; i++){
         anim_gpu(&data, 0);
     }
 }
