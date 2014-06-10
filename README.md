@@ -1,4 +1,4 @@
-FDTD Algorithm On a GPU                        {#mainpage}
+FDTD Algorithm On a GPU                        
 =======================
 
 Introduction
