@@ -20,7 +20,4 @@ extern "C" void clear_memory_TM_PML_simulation(Datablock *d);
 extern "C" void tm_pml_clear_memory_constants(Datablock *d);
 extern "C" size_t tm_pml_allocate_memory(Datablock *d, Structure structure);
 extern "C" void tm_pml_initialize_arrays(Datablock *data, Structure structure, ifstream& fs);
-extern "C" void initialize_eps_array(Datablock *d, string epsname);
-extern "C" void initialize_mu_array(Datablock *d, string muname);
-extern "C" void parse_csv(string file_name, float * mem, long long size);                                            
 #endif

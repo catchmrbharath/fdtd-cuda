@@ -9,6 +9,7 @@
 #include "constants.h"
 #include "h5save.h"
 #include "fdtd.h"
+#include "common_functions.h"
 
 /*! @brief The wrapper function which updates all the kernels.
   */
@@ -21,7 +22,7 @@ void anim_gpu_tm(Datablock *d, int ticks){
     dim3 source_threads(64, 1);
     dim3 source_blocks((d->sources->size + 63) / 64, 1);
 
-    //change(4) : commented this line CPUAnimBitmap *bitmap = d->bitmap;
+    CPUAnimBitmap *bitmap = d->bitmap;
     static long time_ticks = 0;
     printf("time ticks = %ld", time_ticks);
     printf("time ticks = %ld", time_ticks);
@@ -156,9 +157,8 @@ size_t allocateTMMemory(Datablock *data, Structure structure){
 
 
 void initialize_TM_arrays(Datablock *d, Structure structure, ifstream &fs){
-    int size = structure.grid_size();
-    printf("Initializing TM arrays...\n");
-    printf("%d\n", size);
+    long size = structure.grid_size();
+    printf("%ld\n", size);
     printf("%d\n", structure.x_index_dim);
     printf("%d\n", structure.y_index_dim);
 
@@ -200,6 +200,7 @@ void initialize_TM_arrays(Datablock *d, Structure structure, ifstream &fs){
 void copy_sources_device_to_host(HostSources * host_sources, DeviceSources *device_sources){
     int number_of_sources = host_sources->get_size();
     device_sources->size = number_of_sources;
+    cout << "Number of sources = " << number_of_sources << endl;
     checkCudaErrors(cudaMalloc((void**)&device_sources->x_source_position,
                 number_of_sources * sizeof(int)));
     checkCudaErrors(cudaMalloc((void**)&device_sources->y_source_position,
@@ -236,22 +237,4 @@ void copy_sources_device_to_host(HostSources * host_sources, DeviceSources *devi
     }
 }
 
-void initialize_eps_array(Datablock *d, string epsname)
-{
 
-    parse_csv(epsname, d->fields[EPSINDEX], d->structure->grid_size() );
-    printf("Initialized EPS array.\n");
-}
-
-void initialize_mu_array(Datablock *d, string muname)
-{
-    parse_csv(muname, d->fields[MUINDEX], d->structure->grid_size());
-}
-
-void parse_csv(string file_name, float * mem, long long size)
-{
-    //change (1): from file_name.c_str to file_name.c_str()
-    ifstream in(file_name.c_str());
-    for(int i=0; i < size; i++)
-        in >> mem[i];
-}        

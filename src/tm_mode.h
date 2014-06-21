@@ -25,7 +25,4 @@ extern "C" void initialize_TM_arrays(Datablock *data, Structure structure, ifstr
 extern "C" void tm_clear_memory_constants(Datablock *d);
 extern "C" void copy_sources_device_to_host(HostSources *host_sources,
                                             DeviceSources *device_sources);
-extern "C" void initialize_eps_array(Datablock *d, string epsname);
-extern "C" void initialize_mu_array(Datablock *d, string muname);
-extern "C" void parse_csv(string file_name, float * mem, long long size);                                            
 #endif

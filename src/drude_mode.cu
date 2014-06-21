@@ -155,7 +155,7 @@ void initialize_drude_arrays(Datablock *data, Structure structure){
     printf("%ld\n", size);
     printf("%d\n", structure.x_index_dim);
     printf("%d\n", structure.y_index_dim);
-    printf("Initializing arrays...\n");
+    printf("Initializing arrays\n");
 
     // FIXME: Temporary fix for populating values.
     float * temp = (float *)malloc(sizeof(float) * size);

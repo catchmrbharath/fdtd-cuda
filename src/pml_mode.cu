@@ -16,7 +16,7 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
 
     dim3 source_threads(64, 1);
     dim3 source_blocks((d->sources->size + 63) / 64, 1);
-// change (3):  commented this line  CPUAnimBitmap *bitmap = d->bitmap;
+    CPUAnimBitmap *bitmap = d->bitmap;
     static long time_ticks = 0;
     printf("time ticks = %ld", time_ticks);
     printf("time ticks = %ld", time_ticks);
@@ -179,9 +179,8 @@ void tm_pml_initialize_arrays(Datablock *d, Structure structure, ifstream &fs){
     fs>>sigma_y_name;
     fs>>sigma_star_x_name;
     fs>>sigma_star_y_name;
-    printf("Initializing EPS array...\n");
-    initialize_eps_array(d, epsname);
 
+    initialize_eps_array(d, epsname);
     initialize_mu_array(d, muname);
     float * temp = (float *)malloc(sizeof(float) * size);
     /* Read the csv file and get the sigma array */
@@ -217,6 +216,10 @@ void tm_pml_initialize_arrays(Datablock *d, Structure structure, ifstream &fs){
     dim3 blocks((d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
                 (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
     dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
+    printf("Blocks = (%d, %d), threads = (%d, %d)\n", (d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
+                                                      (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y,
+                                                      BLOCKSIZE_X, 
+                                                      BLOCKSIZE_Y);
 
     // Initialize all the fields to zero.
     initialize_array<<<blocks, threads>>>(d->fields[TM_PML_HXFIELD], 0);

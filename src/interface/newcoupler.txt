@@ -1,8 +1,8 @@
 coupler
 1
 5e-08
-1124
-1124
+1024
+1024
 eps_changed.csv
 mu_changed.csv
 sigma_x_changed.csv

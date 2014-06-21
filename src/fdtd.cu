@@ -104,6 +104,7 @@ void calculate_coefficients(Datablock *data, Structure structure){
                                          );
 
     else if(data->simulationType == TM_PML_SIMULATION)
+      {//change 1: using cudaDeviceSynchronize()
         pml_tm_get_coefs<<<blocks, threads>>>(data->constants[MUINDEX],
                                               data->constants[EPSINDEX],
                                               data->constants[SIGMAINDEX_X],
@@ -118,6 +119,13 @@ void calculate_coefficients(Datablock *data, Structure structure){
                                               data->coefs[5],
                                               data->coefs[6],
                                               data->coefs[7]);
+        /*
+        When cudaDeviceSynchronize ... is not given, it works ...
+        but there's an error later.... 
+        */
+        cudaDeviceSynchronize();
+        checkCudaErrors(cudaGetLastError());
+    }
 
     else if(data->simulationType == DRUDE_SIMULATION)
         drude_get_coefs<<<blocks, threads>>>(data->constants[MUINDEX],
@@ -153,13 +161,14 @@ int main(int argc, char **argv){
     fs>>dx;
     float courant = 0.5;
     float dt =  courant * dx / LIGHTSPEED;
+    printf("In fdtd.cu ...\n");
     printf("dt = %E\n", dt);
 
     int xdim, ydim;
     fs>>xdim>>ydim;
     Structure structure(xdim, ydim, dx, dt);
-    printf("The grid size is %ld.\n", (long) (xdim * ydim));
-//Change (2): 2nd arg from structure.x_index_dim to structure.y_index_dim.
+    printf("The grid size is %ld.\n\n", (long) (xdim * ydim));
+
     CPUAnimBitmap bitmap(structure.x_index_dim, structure.x_index_dim,
                             &data); /* bitmap structure */
     data.bitmap = &bitmap;
@@ -169,13 +178,23 @@ int main(int argc, char **argv){
     checkCudaErrors(cudaEventCreate(&data.stop, 1) );
 
     size_t pitch;
+    // memory allocation for fields, coefs, and consts. 
+    printf("Allocating memory ...\n");
     pitch = allocate_memory(&data, structure);
+    printf("Memory allocated.\n\n");
+
     structure.pitch = pitch;
+    
     copy_symbols(&structure);
-    printf("pitch = %d\n", pitch);
+    printf("pitch = %d\n\n", pitch);
     data.structure = &structure;
+    
+    // initialising 
+    printf("Initializing Arrays ...\n");
     initializeArrays(&data, structure, fs);
-    printf("Arrays initialised.\n");
+    printf("Arrays initialized.\n\n");
+    //  get the coefficients
+    printf("Calculating coefficients ...\n");
 //  get the coefficients
     calculate_coefficients(&data, structure);
     clear_memory_constants(&data);
@@ -185,14 +204,17 @@ int main(int argc, char **argv){
     DeviceSources device_sources;
     long long x, y, source_type;
     float mean, variance;
+    printf("Setting the sources on the host ...\n");
     while(!fs.eof()){
-        fs>>x>>y>>source_type>>mean>>variance;
-        cout<<mean<<endl;
+        fs >> x >> y >> source_type >> mean >> variance;
+        cout << "Mean = " << mean << endl;
         host_sources.add_source(x, y, source_type, mean, variance);
     }
 
     data.sources = &device_sources;
+    printf("Copying the sources on the device ...\n");
     copy_sources_device_to_host(&host_sources, &device_sources);
+    printf("Copied the sources on the device.\n");
     pthread_mutex_init(&mutexcopy, NULL);
 
     for(long i=0; i < 3; i++){
