@@ -57,24 +57,34 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
                                             d->fields[TM_PML_EZYFIELD],
                                             d->fields[TM_PML_EZFIELD]);
     }
+    float_to_color<<<blocks, threads>>> (d->output_bitmap,
+		    d->fields[TM_PML_EZFIELD]);
 
 
     d->present_ticks = time_ticks;
-    pthread_t thread;
-    /*Copy back to cpu memory */
-    /*Create a lock */
-    pthread_mutex_lock(&mutexcopy);
-    checkCudaErrors(cudaMemcpy2D(d->save_field,
-                                sizeof(float) * d->structure->x_index_dim,
-                                d->fields[TM_PML_EZFIELD],
-                                d->structure->pitch,
-                                sizeof(float) * d->structure->x_index_dim,
-                                d->structure->y_index_dim,
-                                cudaMemcpyDeviceToHost));
-    pthread_mutex_unlock(&mutexcopy);
+    checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
+			    sizeof(float) * d->structure->x_index_dim,
+			    d->output_bitmap,
+			    d->structure->pitch,
+			    sizeof(float) * d->structure->x_index_dim,
+			    d->structure->y_index_dim,
+			    cudaMemcpyDeviceToHost));
 
-    pthread_create(&thread, NULL, &create_new_dataset, (void *)d);
-    create_new_dataset(d);
+//    pthread_t thread;
+//    /*Copy back to cpu memory */
+//    /*Create a lock */
+//    pthread_mutex_lock(&mutexcopy);
+//    checkCudaErrors(cudaMemcpy2D(d->save_field,
+//                                sizeof(float) * d->structure->x_index_dim,
+//                                d->fields[TM_PML_EZFIELD],
+//                                d->structure->pitch,
+//                                sizeof(float) * d->structure->x_index_dim,
+//                                d->structure->y_index_dim,
+//                                cudaMemcpyDeviceToHost));
+//    pthread_mutex_unlock(&mutexcopy);
+//
+//    pthread_create(&thread, NULL, &create_new_dataset, (void *)d);
+//    create_new_dataset(d);
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
     float elapsedTime;

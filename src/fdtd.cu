@@ -215,9 +215,11 @@ int main(int argc, char **argv){
     printf("Copying the sources on the device ...\n");
     copy_sources_device_to_host(&host_sources, &device_sources);
     printf("Copied the sources on the device.\n");
-    pthread_mutex_init(&mutexcopy, NULL);
-
-    for(long i=0; i < 3; i++){
-        anim_gpu(&data, 0);
-    }
+//    pthread_mutex_init(&mutexcopy, NULL);
+//
+//    for(long i=0; i < 3; i++){
+//        anim_gpu(&data, 0);
+//    }
+    bitmap.anim_and_exit( (void (*)(void *, int)) anim_gpu,
+                            (void (*)(void *)) anim_exit);
 }
