@@ -155,7 +155,9 @@ int main(int argc, char **argv){
     fs>>simulation_name;
     int simulation_type;
     fs>>simulation_type;
-    Datablock data(simulation_type);
+    int output_type;
+    fs>>output_type;
+    Datablock data(simulation_type, output_type);
     data.simulation_name = simulation_name;
     float dx;
     fs>>dx;
@@ -215,11 +217,16 @@ int main(int argc, char **argv){
     printf("Copying the sources on the device ...\n");
     copy_sources_device_to_host(&host_sources, &device_sources);
     printf("Copied the sources on the device.\n");
-//    pthread_mutex_init(&mutexcopy, NULL);
-//
-//    for(long i=0; i < 3; i++){
-//        anim_gpu(&data, 0);
-//    }
+   if(data.outputType == OUTPUT_HDF5){
+   pthread_mutex_init(&mutexcopy, NULL); //
+
+   for(long i=0; i < 3; i++){//
+       anim_gpu(&data, 0);//
+   }
+   }
+
+  if(data.outputType == OUTPUT_ANIM){
     bitmap.anim_and_exit( (void (*)(void *, int)) anim_gpu,
-                            (void (*)(void *)) anim_exit);
+                           (void (*)(void *)) anim_exit);
+  }
 }

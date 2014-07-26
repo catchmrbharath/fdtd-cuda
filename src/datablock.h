@@ -23,6 +23,9 @@ using namespace std;
 #define BLOCKSIZE_HX 256 //! Block size used for hx updates.
 #define BLOCKSIZE_HY 1
 
+#define OUTPUT_ANIM 0   //! Output animation or hdf5 files
+#define OUTPUT_HDF5 1
+
 // Different simulation types.
 // TODO ? (Not sure) Replace it with an enumerate?
 #define TM_SIMULATION 0
@@ -76,13 +79,15 @@ struct Datablock{
     int present_ticks;
     float frames; //! Profiling.
     int simulationType; //! Simulation type: TM mode. TM PML, Drude
+    int outputType;
     Structure * structure; //! Pointer to the structure array(Contains xdim, ydim)
     int number_of_sources;
     DeviceSources * sources; //! Device pointer to the structure of arrays which contains the source definitions
     string simulation_name;
 
-    Datablock(int type){
+    Datablock(int type, int output_type){
         simulationType = type;
+        outputType = output_type;
         if(type == TM_SIMULATION){
             fields = (float **) malloc(sizeof(float *) * 3);
             constants = (float **) malloc(sizeof(float *) * 4);

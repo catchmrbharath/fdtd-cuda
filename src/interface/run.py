@@ -75,6 +75,7 @@ if len(sys.argv) == 2:
     mod = load_source('config', sys.argv[1]);
     print mod.name
     print mod.type
+    print mod.output_type
     print mod.dx
     if mod.type == 1:
         print mod.xdim + 2 * mod.pml_width
