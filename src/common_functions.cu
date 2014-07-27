@@ -5,7 +5,7 @@ using namespace std;
 
 void initialize_eps_array(Datablock *d, string epsname)
 {
-     float * temp = (float *) malloc(sizeof(float) * d->structure->grid_size());
+    float * temp = (float *) malloc(sizeof(float) * d->structure->grid_size());
     parse_csv(epsname, temp, d->structure->grid_size());
     checkCudaErrors(cudaMemcpy2D(d->constants[EPSINDEX], d->structure->pitch,
                 temp, sizeof(float) * d->structure->x_index_dim,
@@ -17,7 +17,7 @@ void initialize_eps_array(Datablock *d, string epsname)
 
 void initialize_mu_array(Datablock *d, string muname)
 {
-     float * temp = (float *) malloc(sizeof(float) * d->structure->grid_size());
+    float * temp = (float *) malloc(sizeof(float) * d->structure->grid_size());
     parse_csv(muname, temp, d->structure->grid_size());
     checkCudaErrors(cudaMemcpy2D(d->constants[MUINDEX], d->structure->pitch,
                 temp, sizeof(float) * d->structure->x_index_dim,

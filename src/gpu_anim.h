@@ -171,7 +171,5 @@ struct GPUAnimBitmap {
         glutSwapBuffers();
     }
 };
-
-
 #endif  // __GPU_ANIM_H__
 

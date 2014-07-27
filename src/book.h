@@ -128,7 +128,7 @@ __global__ void float_to_color( uchar4 *optr,
 
 
 #if _WIN32
-    //Windows threads.
+    // Windows threads.
     #include <windows.h>
 
     typedef HANDLE CUTThread;
@@ -138,7 +138,7 @@ __global__ void float_to_color( uchar4 *optr,
     #define  CUT_THREADEND return 0
 
 #else
-    //POSIX threads.
+    // POSIX threads.
     #include <pthread.h>
 
     typedef pthread_t CUTThread;
@@ -148,37 +148,37 @@ __global__ void float_to_color( uchar4 *optr,
     #define  CUT_THREADEND
 #endif
 
-//Create thread.
+// Create thread.
 CUTThread start_thread( CUT_THREADROUTINE, void *data );
 
-//Wait for thread to finish.
+// Wait for thread to finish.
 void end_thread( CUTThread thread );
 
-//Destroy thread.
+// Destroy thread.
 void destroy_thread( CUTThread thread );
 
-//Wait for multiple threads.
+// Wait for multiple threads.
 void wait_for_threads( const CUTThread *threads, int num );
 
 #if _WIN32
-    //Create thread
+    // Create thread
     CUTThread start_thread(CUT_THREADROUTINE func, void *data){
         return CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, data, 0, NULL);
     }
 
-    //Wait for thread to finish
+    // Wait for thread to finish
     void end_thread(CUTThread thread){
         WaitForSingleObject(thread, INFINITE);
         CloseHandle(thread);
     }
 
-    //Destroy thread
+    // Destroy thread
     void destroy_thread( CUTThread thread ){
         TerminateThread(thread, 0);
         CloseHandle(thread);
     }
 
-    //Wait for multiple threads
+    // Wait for multiple threads
     void wait_for_threads(const CUTThread * threads, int num){
         WaitForMultipleObjects(num, threads, true, INFINITE);
 
@@ -211,8 +211,4 @@ void wait_for_threads( const CUTThread *threads, int num );
     }
 
 #endif
-
-
-
-
 #endif  // __BOOK_H__

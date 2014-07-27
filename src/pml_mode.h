@@ -10,8 +10,8 @@
 #include "kernels.cuh"
 #include "constants.h"
 #include <thrust/fill.h>
-#include<algorithm>
-#include<fstream>
+#include <algorithm>
+#include <fstream>
 #include "common_functions.h"
 using namespace std;
 

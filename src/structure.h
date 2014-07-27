@@ -4,8 +4,8 @@
  */
 #ifndef _STRUCTURE_H_
 #define _STRUCTURE_H_
-#include "cuda.h"   
-#include<vector>
+#include "cuda.h"
+#include <vector>
 #include "hostsources.h"
 #include "stdio.h"
 

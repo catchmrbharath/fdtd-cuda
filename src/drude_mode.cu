@@ -7,8 +7,7 @@
 #include "constants.h"
 #include "h5save.h"
 #include "fdtd.h"
-#include "common_functions.h"
-#include  <pthread.h>
+#include <pthread.h>
 /**
   Main entry point for the fdtd calculations
 
@@ -67,11 +66,11 @@ void anim_gpu_drude(Datablock *d, int ticks){
                                         d->coefs[0],
                                         d->coefs[1]);
     }
+    
     if(d->outputType == OUTPUT_ANIM)
     {
         float_to_color<<<blocks, threads>>> (d->output_bitmap,
                 d->fields[DRUDE_EZFIELD]);
-
         checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
                                     sizeof(float) * d->structure->x_index_dim,
                                     d->output_bitmap,
@@ -83,25 +82,23 @@ void anim_gpu_drude(Datablock *d, int ticks){
 
     if(d->outputType == OUTPUT_HDF5)
     {
-        pthread_t thread;//
+        pthread_t thread;
         /*Copy back to cpu memory */
         /*Create a lock */
-        pthread_mutex_lock(&mutexcopy);//
-        checkCudaErrors(cudaMemcpy2D(d->save_field,//
-                               sizeof(float) * d->structure->x_index_dim,//
-                               d->fields[TM_PML_EZFIELD],//
-                               d->structure->pitch,//
-                               sizeof(float) * d->structure->x_index_dim,//
-                               d->structure->y_index_dim,//
-                               cudaMemcpyDeviceToHost));//
-        pthread_mutex_unlock(&mutexcopy);//
-
-        pthread_create(&thread, NULL, &create_new_dataset, (void *)d);//
-        create_new_dataset(d);//
+        pthread_mutex_lock(&mutexcopy);
+        checkCudaErrors(cudaMemcpy2D(d->save_field,
+                                   sizeof(float) * d->structure->x_index_dim,
+                                   d->fields[DRUDE_EZFIELD],
+                                   d->structure->pitch,
+                                   sizeof(float) * d->structure->x_index_dim,
+                                   d->structure->y_index_dim,
+                                   cudaMemcpyDeviceToHost));
+        pthread_mutex_unlock(&mutexcopy);
+        pthread_create(&thread, NULL, &create_new_dataset, (void *)d);
+        create_new_dataset(d);
     }
 
     d->present_ticks = time_ticks;
-
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
     float elapsedTime = 1;

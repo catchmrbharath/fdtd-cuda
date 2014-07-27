@@ -9,7 +9,7 @@
 
 #include "datablock.h"
 #include <thrust/fill.h>
-#include<algorithm>
+#include <algorithm>
 #include "helper_cuda.h"
 #include "helper_functions.h"
 #include "kernels.cuh"

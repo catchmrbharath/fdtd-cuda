@@ -1,0 +1,21 @@
+In fdtd.cu ...
+dt = 8.339103E-17
+The grid size is 1263376.
+
+Allocating memory ...
+Done.
+
+pitch = 4608
+
+Initializing Arrays ...
+Done.
+
+Calculating coefficients ...
+Done.
+
+Setting the sources on the host ...
+Done.
+
+Copying the sources on the device ...
+Done.
+
