@@ -6,3 +6,4 @@ src/*.csv
 src/interface/*.csv
 src/*.png
 src/*.h5
+src/interface/coupler.cfgc
