@@ -1,7 +1,7 @@
 #include "pml_mode.h"
 #include "h5save.h"
 #include "fdtd.h"
-#include<pthread.h>
+#include <pthread.h>
 /*! @brief TM mode iteration function
   This is the function which runs all the updates. It runs
   the updates for a certain number of iterations and returns
@@ -18,8 +18,7 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
     dim3 source_blocks((d->sources->size + 63) / 64, 1);
     CPUAnimBitmap *bitmap = d->bitmap;
     static long time_ticks = 0;
-    printf("time ticks = %ld", time_ticks);
-    printf("time ticks = %ld", time_ticks);
+    printf("time ticks = %ld  ", time_ticks);
 
     for(int i=0;i<50;i++){
         time_ticks += 1;
@@ -57,24 +56,39 @@ void anim_gpu_pml_tm(Datablock *d, int ticks){
                                             d->fields[TM_PML_EZYFIELD],
                                             d->fields[TM_PML_EZFIELD]);
     }
+    if(d->outputType == OUTPUT_ANIM)
+    {
+        float_to_color<<<blocks, threads>>> (d->output_bitmap,
+    		    d->fields[TM_PML_EZFIELD]);
+        checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
+			    sizeof(float) * d->structure->x_index_dim,
+			    d->output_bitmap,
+			    d->structure->pitch,
+			    sizeof(float) * d->structure->x_index_dim,
+			    d->structure->y_index_dim,
+			    cudaMemcpyDeviceToHost));
+    }
 
+    if(d->outputType == OUTPUT_HDF5)
+    {
+        pthread_t thread;
+        /*Copy back to cpu memory */
+        /*Create a lock */
+        pthread_mutex_lock(&mutexcopy);
+        checkCudaErrors(cudaMemcpy2D(d->save_field,
+                                   sizeof(float) * d->structure->x_index_dim,
+                                   d->fields[TM_PML_EZFIELD],
+                                   d->structure->pitch,
+                                   sizeof(float) * d->structure->x_index_dim,
+                                   d->structure->y_index_dim,
+                                   cudaMemcpyDeviceToHost));
+        pthread_mutex_unlock(&mutexcopy);
+        pthread_create(&thread, NULL, &create_new_dataset, (void *)d);
+        create_new_dataset(d);
+    }
 
+    printf("time ticks = %ld  ", time_ticks);
     d->present_ticks = time_ticks;
-    pthread_t thread;
-    /*Copy back to cpu memory */
-    /*Create a lock */
-    pthread_mutex_lock(&mutexcopy);
-    checkCudaErrors(cudaMemcpy2D(d->save_field,
-                                sizeof(float) * d->structure->x_index_dim,
-                                d->fields[TM_PML_EZFIELD],
-                                d->structure->pitch,
-                                sizeof(float) * d->structure->x_index_dim,
-                                d->structure->y_index_dim,
-                                cudaMemcpyDeviceToHost));
-    pthread_mutex_unlock(&mutexcopy);
-
-    pthread_create(&thread, NULL, &create_new_dataset, (void *)d);
-    create_new_dataset(d);
     checkCudaErrors(cudaEventRecord(d->stop, 0) );
     checkCudaErrors(cudaEventSynchronize(d->stop));
     float elapsedTime;
@@ -153,9 +167,7 @@ size_t tm_pml_allocate_memory(Datablock *data, Structure structure){
                     &pitch, sizeof(float) * structure.x_index_dim,
                     sizeof(float) * structure.y_index_dim ));
     }
-
     return pitch;
-
 }
 
 /*! @brief Initializes the arrays from the configuration file.
@@ -166,9 +178,6 @@ size_t tm_pml_allocate_memory(Datablock *data, Structure structure){
 */
 void tm_pml_initialize_arrays(Datablock *d, Structure structure, ifstream &fs){
     int size = structure.grid_size();
-    printf("%ld\n", size);
-    printf("%ld\n", structure.x_index_dim);
-    printf("%ld\n", structure.y_index_dim);
 
     string epsname, muname, sigma_x_name, sigma_y_name;
     string sigma_star_x_name, sigma_star_y_name;

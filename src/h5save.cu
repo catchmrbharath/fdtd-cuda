@@ -3,7 +3,7 @@
 #include <string>
 #include "h5save.h"
 #include "fdtd.h"
-#include<pthread.h>
+#include <pthread.h>
 using namespace std;
 
 int create_file(char * name){
@@ -35,8 +35,6 @@ void *create_new_dataset(void *data){
     status = H5Fclose(file_id);
     pthread_mutex_unlock(&mutexcopy);
 }
-
-
 
 /*int main(){*/
     /*test_hdf5();*/

@@ -9,6 +9,7 @@
 #include "constants.h"
 #include "h5save.h"
 #include "fdtd.h"
+#include "common_functions.h"
 
 /*! @brief The wrapper function which updates all the kernels.
   */
@@ -23,8 +24,8 @@ void anim_gpu_tm(Datablock *d, int ticks){
 
     CPUAnimBitmap *bitmap = d->bitmap;
     static long time_ticks = 0;
-    printf("time ticks = %ld", time_ticks);
-    printf("time ticks = %ld", time_ticks);
+    printf("time ticks = %ld  ", time_ticks);
+
     for(int i=0;i<100;i++){
         time_ticks += 1;
         copy_sources<<<source_blocks, source_threads>>>(
@@ -54,27 +55,38 @@ void anim_gpu_tm(Datablock *d, int ticks){
                                         d->coefs[3]);
     }
 
-    checkCudaErrors(cudaMemcpy2D(d->save_field,
-                                sizeof(float) * d->structure->x_index_dim,
-                                d->fields[TM_EZFIELD],
-                                d->structure->pitch,
-                                sizeof(float) * d->structure->x_index_dim,
-                                d->structure->y_index_dim,
-                                cudaMemcpyDeviceToHost));
+    if(d->outputType == OUTPUT_HDF5)
+    {
+        // removed cudaMemcpy w/ d->fields[TM_EZFIELD]
+        pthread_t thread;
+        pthread_mutex_lock(&mutexcopy);
+        checkCudaErrors(cudaMemcpy2D(d->save_field,
+                                    sizeof(float) * d->structure->x_index_dim,
+                                    d->fields[TM_EZFIELD], // changed from TM_PML_EZFIELD 
+                                    d->structure->pitch,
+                                    sizeof(float) * d->structure->x_index_dim,
+                                    d->structure->y_index_dim,
+                                    cudaMemcpyDeviceToHost));
+        pthread_mutex_unlock(&mutexcopy);
+        pthread_create(&thread, NULL, &create_new_dataset, (void *)d);
+    }
+
+    if(d->outputType == OUTPUT_ANIM)
+    {
+        float_to_color<<<blocks, threads>>> (d->output_bitmap,
+                d->fields[TM_EZFIELD]);
+        checkCudaErrors(cudaMemcpy2D(bitmap->get_ptr(),
+                sizeof(float) * d->structure->x_index_dim,
+                d->output_bitmap,
+                d->structure->pitch,
+                sizeof(float) * d->structure->x_index_dim,
+                d->structure->y_index_dim,
+                cudaMemcpyDeviceToHost));
+    }
 
     d->present_ticks = time_ticks;
-    pthread_t thread;
-    pthread_mutex_lock(&mutexcopy);
-    checkCudaErrors(cudaMemcpy2D(d->save_field,
-                                sizeof(float) * d->structure->x_index_dim,
-                                d->fields[TM_PML_EZFIELD],
-                                d->structure->pitch,
-                                sizeof(float) * d->structure->x_index_dim,
-                                d->structure->y_index_dim,
-                                cudaMemcpyDeviceToHost));
-    pthread_mutex_unlock(&mutexcopy);
-    pthread_create(&thread, NULL, &create_new_dataset, (void *)d);
-    checkCudaErrors(cudaEventRecord(d->stop, 0) );
+    printf("time ticks = %ld  ", time_ticks);
+    checkCudaErrors(cudaEventRecord(d->stop, 0));
     checkCudaErrors(cudaEventSynchronize(d->stop));
     float elapsedTime;
     checkCudaErrors(cudaEventElapsedTime(&elapsedTime, d->start, d->stop));
@@ -109,10 +121,8 @@ void clear_memory_TM_simulation(Datablock *d){
 }
 
 size_t allocateTMMemory(Datablock *data, Structure structure){
-    printf("The size of the structure is %ld", structure.size());
     size_t pitch;
     data->save_field = (float *) malloc(structure.size());
-
     checkCudaErrors(cudaMallocPitch( (void **) &data->output_bitmap,
                     &pitch, sizeof(float) * structure.x_index_dim,
                     sizeof(float) * structure.y_index_dim ));
@@ -120,7 +130,6 @@ size_t allocateTMMemory(Datablock *data, Structure structure){
     checkCudaErrors(cudaMallocPitch( (void **) &data->fields[TM_EZFIELD],
                     &pitch, sizeof(float) * structure.x_index_dim,
                     sizeof(float) * structure.y_index_dim ));
-    printf("%d\n", pitch);
     checkCudaErrors(cudaMallocPitch( (void **) &data->fields[TM_HYFIELD],
                     &pitch, sizeof(float) * structure.x_index_dim,
                     sizeof(float) * structure.y_index_dim ));
@@ -156,10 +165,7 @@ size_t allocateTMMemory(Datablock *data, Structure structure){
 
 
 void initialize_TM_arrays(Datablock *d, Structure structure, ifstream &fs){
-    int size = structure.grid_size();
-    printf("%ld\n", size);
-    printf("%ld\n", structure.x_index_dim);
-    printf("%ld\n", structure.y_index_dim);
+    long size = structure.grid_size();
 
     string epsname, muname, sigmaname;
     fs>>epsname;
@@ -186,7 +192,6 @@ void initialize_TM_arrays(Datablock *d, Structure structure, ifstream &fs){
     dim3 blocks((d->structure->x_index_dim + BLOCKSIZE_X - 1) / BLOCKSIZE_X,
                 (d->structure->y_index_dim + BLOCKSIZE_Y - 1) / BLOCKSIZE_Y);
     dim3 threads(BLOCKSIZE_X, BLOCKSIZE_Y);
-
 
     initialize_array<<<blocks, threads>>>(d->fields[TM_HXFIELD], 0);
     initialize_array<<<blocks, threads>>>(d->fields[TM_HYFIELD], 0);
@@ -234,3 +239,5 @@ void copy_sources_device_to_host(HostSources * host_sources, DeviceSources *devi
                 sizeof(float) * number_of_sources, cudaMemcpyHostToDevice));
     }
 }
+
+

@@ -5,7 +5,7 @@
 #ifndef _STRUCTURE_H_
 #define _STRUCTURE_H_
 #include "cuda.h"
-#include<vector>
+#include <vector>
 #include "hostsources.h"
 #include "stdio.h"
 
@@ -28,13 +28,11 @@ struct Structure{
         dt = dtin;
     }
 
-    int size(){
+    long size(){
         return (long)(x_index_dim * y_index_dim * 4);
     }
 
-    int grid_size(){
-        long temp = x_index_dim * y_index_dim;
-        printf("The size is %ld\n", temp);
+    long grid_size(){
         return (long) (x_index_dim * y_index_dim);
     }
 };

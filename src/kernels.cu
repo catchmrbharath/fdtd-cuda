@@ -57,8 +57,12 @@ __global__ void update_Hy(float *Hy, float *Ez, float * coef1, float * coef2){
 
 /*! @brief Ez updates for TM mode.
   */
-__global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
-                            float *coef2){
+__global__ void update_Ez(  float *Hx, 
+                            float *Hy, 
+                            float *Ez, 
+                            float *coef1,
+                            float *coef2)
+{
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int offset = x + y * pitch / sizeof(float);
@@ -71,7 +75,6 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
                     coef2[offset] * ((Hy[offset] - Hy[left]) -
                                     (Hx[offset] - Hx[bottom]));
     }
-
     __syncthreads();
 }
 
@@ -80,13 +83,14 @@ __global__ void update_Ez(float *Hx, float *Hy, float *Ez, float * coef1,
 /*! @brief Calculates tm mode coefficients.
   */
 __global__ void tm_getcoeff(float *mu,
-                                float * epsilon,
-                                float *sigma,
-                                float * sigma_star,
-                                float * coef1,
-                                float * coef2,
-                                float * coef3,
-                                float * coef4){
+                            float * epsilon,
+                            float *sigma,
+                            float * sigma_star,
+                            float * coef1,
+                            float * coef2,
+                            float * coef3,
+                            float * coef4)
+{
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int offset = x + y * pitch / sizeof(float);
@@ -106,7 +110,8 @@ __global__ void tm_getcoeff(float *mu,
 }
 
 /*! @brief Converts HSL value to RGB value */
-__device__ unsigned char value( float n1, float n2, int hue ) {
+__device__ unsigned char value( float n1, float n2, int hue ) 
+{
     if (hue > 360)      hue -= 360;
     else if (hue < 0)   hue += 360;
 
@@ -195,13 +200,13 @@ __global__ void pml_tm_get_coefs(float *mu,
                               float *sigma_star_x,
                               float *sigma_star_y,
                               float *coef1,
-                              float * coef2,
-                              float * coef3,
-                              float * coef4,
-                              float * coef5,
-                              float * coef6,
-                              float * coef7,
-                              float * coef8)
+                              float *coef2,
+                              float *coef3,
+                              float *coef4,
+                              float *coef5,
+                              float *coef6,
+                              float *coef7,
+                              float *coef8)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -222,7 +227,7 @@ __global__ void pml_tm_get_coefs(float *mu,
                     (2.0 * mus + sigma_star_y_value * deltat);
 
     coef4[offset] = (2 * deltat) / ( (2 * mus +
-                sigma_star_y_value *deltat) * delta);
+                    sigma_star_y_value *deltat) * delta);
 
     coef5[offset] = (2.0 * eps - sigma_x_value * deltat) /
                     (2.0 * eps + sigma_x_value * deltat);

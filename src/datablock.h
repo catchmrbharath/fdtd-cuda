@@ -8,20 +8,24 @@
 #ifndef __DATABLOCK__
 #define __DATABLOCK__
 
-#include<vector>
+#include <vector>
 #include "structure.h"
 #include "devicesources.h"
 #include "hostsources.h"
 #include "cpu_anim.h"
 #include <string>
 using namespace std;
+
 // This gives the best results
 #define BLOCKSIZE_X 256 //! Blocksizes used for simulation
 #define BLOCKSIZE_Y 1
 
-
 #define BLOCKSIZE_HX 256 //! Block size used for hx updates.
 #define BLOCKSIZE_HY 1
+
+// Different Output types.
+#define OUTPUT_ANIM 0
+#define OUTPUT_HDF5 1
 
 // Different simulation types.
 // TODO ? (Not sure) Replace it with an enumerate?
@@ -65,24 +69,27 @@ using namespace std;
 #define OMEGAP_INDEX 5
 
 struct Datablock{
-    unsigned char *output_bitmap; //! bitmap file to copy into
-    float ** fields; //! Device pointer to different field arrays
-    float ** constants; //! Device pointer to constant arrays.
-    float *save_field; //! Host pointer to the field that has to be copied into.
-    float ** coefs; //! Device pointer to all the coefficients.
-    CPUAnimBitmap *bitmap; //! Host bitmap structure pointer.
-    cudaEvent_t start, stop; //! for profiling. ignore.
-    float totalTime; //! For profiling. Keeps track of time for a certain number of simulations.
+    unsigned char *output_bitmap;   //! bitmap file to copy into
+    float ** fields;                //! Device pointer to different field arrays
+    float ** constants;             //! Device pointer to constant arrays.
+    float *save_field;              //! Host pointer to the field that has to be copied into.
+    float ** coefs;                 //! Device pointer to all the coefficients.
+    CPUAnimBitmap *bitmap;          //! Host bitmap structure pointer.
+    cudaEvent_t start, stop;        //! for profiling. ignore.
+    float totalTime;                //! For profiling. Keeps track of time for a certain number of simulations.
     int present_ticks;
-    float frames; //! Profiling.
-    int simulationType; //! Simulation type: TM mode. TM PML, Drude
-    Structure * structure; //! Pointer to the structure array(Contains xdim, ydim)
+    float frames;                   //! Profiling.
+    int simulationType;             //! Simulation type: TM mode. TM PML, Drude
+    Structure * structure;          //! Pointer to the structure array(Contains xdim, ydim)
     int number_of_sources;
-    DeviceSources * sources; //! Device pointer to the structure of arrays which contains the source definitions
+    DeviceSources * sources;        //! Device pointer to the structure of arrays which contains the source definitions
     string simulation_name;
+    int outputType;                 //! output HDF5 or animation 
 
-    Datablock(int type){
+    Datablock(int type, int output_type){
         simulationType = type;
+        outputType = output_type;
+        present_ticks = 0;
         if(type == TM_SIMULATION){
             fields = (float **) malloc(sizeof(float *) * 3);
             constants = (float **) malloc(sizeof(float *) * 4);
